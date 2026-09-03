@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
 import 'package:true_motors/compare_vehicle_module/compare_brand_screen.dart';
-
 import 'package:true_motors/compare_vehicle_module/compare_result_screen.dart';
 import 'dart:math' as math;
 import 'used_vehicle_screen.dart';

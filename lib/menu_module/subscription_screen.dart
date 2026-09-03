@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:true_motors/provider/subscription_provider.dart';
 
 
 // ─── Subscription Screen ──────────────────────────────────────────────────────
@@ -15,136 +17,65 @@ class SubscriptionScreen extends StatefulWidget {
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isYearly = false; // false = Monthly, true = Yearly
 
-  // ── Plan data ────────────────────────────────────────────────────────────────
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<SubscriptionProvider>(context, listen: false).fetchPlans();
+    });
+  }
 
-  final List<_PlanData> _monthlyPlans = const [
-    _PlanData(
-      name: 'Free',
-      tagline: 'Get Started for free',
-      price: '0',
-      period: '/month',
+  _PlanData _mapToPlanData(SubscriptionPlan plan) {
+    final nameLower = plan.planName.toLowerCase();
+    
+    // Default styling (Free style)
+    String tagline = 'Get Started for free';
+    _ButtonStyle buttonStyle = _ButtonStyle.outlined;
+    String imageAsset = 'assets/subscription/month.png';
+    Color iconColor = const Color(0xFF5F6368);
+    Color backgroundColor = const Color(0xFFF1ECFD);
+    bool isMostPopular = false;
+    bool isCurrent = false;
+
+    if (nameLower.contains('premium')) {
+      tagline = 'Sell faster with more exposure';
+      buttonStyle = _ButtonStyle.purple;
+      imageAsset = 'assets/subscription/premium.png';
+      iconColor = const Color(0xFF742B88);
+      backgroundColor = const Color(0xFF6939DF);
+      isMostPopular = true;
+    } else if (nameLower.contains('dealer')) {
+      tagline = 'For Dealers & Businesses';
+      buttonStyle = _ButtonStyle.orange;
+      imageAsset = 'assets/subscription/dealer.png';
+      iconColor = const Color(0xFFE65100);
+      backgroundColor = const Color(0xFFF78B01);
+    } else if (nameLower.contains('free')) {
+      isCurrent = true;
+    }
+
+    final List<String> features = [
+      '${plan.listings} Active Listings',
+      '${plan.coins} Coins Included',
+
+    ];
+
+    return _PlanData(
+      name: plan.planName,
+      tagline: tagline,
+      price: plan.price.toString(),
+      period: plan.validity == 30 ? '/month' : '/yearly',
       originalPrice: null,
-      isMostPopular: false,
-      isCurrent: true,
-      buttonLabel: 'Current Plan',
-      buttonStyle: _ButtonStyle.outlined,
-      imageAsset: 'assets/subscription/month.png',
-      iconColor: Color(0xFF5F6368),
-      backgroundColor: Color(0xFFF1ECFD),
-      features: [
-        '2 Active Listing',
-        'Basic Visibility',
-        'Standard Support',
-      ],
-    ),
-    _PlanData(
-      name: 'Premium',
-      tagline: 'Sell faster with more exposure',
-      price: '299',
-      period: '/month',
-      originalPrice: '499',
-      isMostPopular: true,
-      isCurrent: false,
-      buttonLabel: 'Choose Premium Plan',
-      buttonStyle: _ButtonStyle.purple,
-      imageAsset: 'assets/subscription/premium.png',
-      iconColor: Color(0xFF742B88),
-      backgroundColor: Color(0xFF6939DF),
-      features: [
-        '20 Active Listing',
-        'Featured Listing',
-        'Priority Support',
-      ],
-    ),
-    _PlanData(
-      name: 'Dealer Plan',
-      tagline: 'For Dealers & Businesses',
-      price: '499',
-      period: '/month',
-      originalPrice: '1,490',
-      isMostPopular: false,
-      isCurrent: false,
-      buttonLabel: 'Choose Dealer Plan',
-      buttonStyle: _ButtonStyle.orange,
-      imageAsset: 'assets/subscription/dealer.png',
-      iconColor: Color(0xFFE65100),
-      backgroundColor: Color(0xFFF78B01),
-      features: [
-        'Unlimited Listing',
-        'Featured Listing',
-        'Priority Support',
-        'Bulk Upload',
-        'Lead Priority',
-        'Dealer Badge',
-      ],
-    ),
-  ];
-
-  final List<_PlanData> _yearlyPlans = const [
-    _PlanData(
-      name: 'Free',
-      tagline: 'Get Started for free',
-      price: '0',
-      period: '/yearly',
-      originalPrice: null,
-      isMostPopular: false,
-      isCurrent: true,
-      buttonLabel: 'Current Plan',
-      buttonStyle: _ButtonStyle.outlined,
-      imageAsset: 'assets/subscription/month.png',
-      iconColor: Color(0xFF5F6368),
-      backgroundColor: Color(0xFFF1ECFD),
-      features: [
-        '2 Active Listing',
-        'Basic Visibility',
-        'Standard Support',
-      ],
-    ),
-    _PlanData(
-      name: 'Premium',
-      tagline: 'Sell faster with more exposure',
-      price: '1499',
-      period: '/Yearly',
-      originalPrice: '2990',
-      isMostPopular: true,
-      isCurrent: false,
-      buttonLabel: 'Choose Premium Plan',
-      buttonStyle: _ButtonStyle.purple,
-      imageAsset: 'assets/subscription/premium.png',
-      iconColor: Color(0xFF742B88),
-      backgroundColor: Color(0xFF6939DF),
-      features: [
-        '20 Active Listing',
-        'Featured Listing',
-        'Priority Support',
-      ],
-    ),
-    _PlanData(
-      name: 'Dealer Plan',
-      tagline: 'For Dealers & Businesses',
-      price: '1999',
-      period: '/yearly',
-      originalPrice: '1,490',
-      isMostPopular: false,
-      isCurrent: false,
-      buttonLabel: 'Choose Dealer Plan',
-      buttonStyle: _ButtonStyle.orange,
-      imageAsset: 'assets/subscription/dealer.png',
-      iconColor: Color(0xFFE65100),
-      backgroundColor: Color(0xFFF78B01),
-      features: [
-        'Unlimited Listing',
-        'Featured Listing',
-        'Priority Support',
-        'Bulk Upload',
-        'Lead Priority',
-        'Dealer Badge',
-      ],
-    ),
-  ];
-
-  List<_PlanData> get _activePlans =>
-      _isYearly ? _yearlyPlans : _monthlyPlans;
+      isMostPopular: isMostPopular,
+      isCurrent: isCurrent,
+      buttonLabel: isCurrent ? 'Current Plan' : 'Choose ${plan.planName}',
+      buttonStyle: buttonStyle,
+      imageAsset: imageAsset,
+      iconColor: iconColor,
+      backgroundColor: backgroundColor,
+      features: features,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,71 +98,86 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Expanded(
               child: SafeArea(
                 top: false,
-                child: Column(
-                  children: [
-                    _buildTopBar(context),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            // ── Banner ──────────────────────────────────────────────
-                            _buildBanner(),
-                            SizedBox(height: 5.h),
+                child: Consumer<SubscriptionProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                            // ── Monthly / Yearly toggle ─────────────────────────────
-                            _buildToggle(),
-                            SizedBox(height: 18.h),
+                    if (provider.errorMessage != null) {
+                      return Center(child: Text(provider.errorMessage!));
+                    }
 
-                            // ── Plan label ─────────────────────────────────────────
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Choose your Plan',
-                                  style: TextStyle(
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF000000),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
+                    final dynamicPlans = _isYearly ? provider.yearlyPlans : provider.monthlyPlans;
+                    final activePlans = dynamicPlans.map((p) => _mapToPlanData(p)).toList();
 
-                            // ── Plan cards ─────────────────────────────────────────
-                            ..._activePlans.map((plan) => _buildPlanCard(plan)),
-                            SizedBox(height: 10.h),
+                    return Column(
+                      children: [
+                        _buildTopBar(context),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                // ── Banner ──────────────────────────────────────────────
+                                _buildBanner(),
+                                SizedBox(height: 5.h),
 
-                            // ── All Plans Include section ───────────────────────────
-                            _buildAllPlansInclude(),
-                            SizedBox(height: 10.h),
+                                // ── Monthly / Yearly toggle ─────────────────────────────
+                                _buildToggle(),
+                                SizedBox(height: 18.h),
 
-                            // ── Secure payment note ─────────────────────────────────
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.lock_outline,
-                                      size: 14.r, color: const Color(0xFF3C3C3C)),
-                                  SizedBox(width: 6.w),
-                                  Text(
-                                    '100% Secure Payment',
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                      color: const Color(0xFF3C3C3C),
+                                // ── Plan label ─────────────────────────────────────────
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      'Choose your Plan',
+                                      style: TextStyle(
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF000000),
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                SizedBox(height: 10.h),
+
+                                // ── Plan cards ─────────────────────────────────────────
+                                ...activePlans.map((plan) => _buildPlanCard(plan)),
+                                SizedBox(height: 10.h),
+
+                                // ── All Plans Include section ───────────────────────────
+                                _buildAllPlansInclude(),
+                                SizedBox(height: 10.h),
+
+                                // ── Secure payment note ─────────────────────────────────
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.lock_outline,
+                                          size: 14.r, color: const Color(0xFF3C3C3C)),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        '100% Secure Payment',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: const Color(0xFF3C3C3C),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 20.h),
+                              ],
                             ),
-                            SizedBox(height: 20.h),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -484,8 +430,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     itemCount: plan.features.length,
                     gridDelegate:
                     SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 3.8,
+                      crossAxisCount: 2,
+                      childAspectRatio: 10,
                       crossAxisSpacing: 2.w,
                       mainAxisSpacing: 4.h,
                     ),

@@ -11,6 +11,7 @@ class LoginRequest {
   final String deviceId;
   final String mobile;
   final String appSignature;
+  final String referredByCode;
 
   const LoginRequest({
     required this.cid,
@@ -19,6 +20,7 @@ class LoginRequest {
     required this.deviceId,
     required this.mobile,
     required this.appSignature,
+    required this.referredByCode,
   });
 
   Map<String, String> toParams() => {
@@ -29,6 +31,7 @@ class LoginRequest {
     'type': '2500',
     'mobile': mobile,
     'app_signature': appSignature,
+    'referred_by_code': referredByCode,
   };
 }
 
@@ -45,6 +48,9 @@ class LoginResponse {
   final String deviceId;
   final String fToken;
   final String appSignature;
+  final bool isNewUser;
+  final String referralCode;
+  final String referredByCode;
 
   const LoginResponse({
     required this.error,
@@ -57,6 +63,9 @@ class LoginResponse {
     required this.deviceId,
     required this.fToken,
     required this.appSignature,
+    required this.isNewUser,
+    required this.referralCode,
+    required this.referredByCode,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) => LoginResponse(
@@ -70,6 +79,9 @@ class LoginResponse {
     deviceId: json['device_id']?.toString() ?? '',
     fToken: json['f_token'] ?? '',
     appSignature: json['app_signature'] ?? '',
+    isNewUser: json['is_new_user'] ?? false,
+    referralCode: json['referral_code'] ?? '',
+    referredByCode: json['referred_by_code'] ?? '',
   );
 }
 

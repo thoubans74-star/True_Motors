@@ -10,7 +10,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/foundation.dart';
 
-
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 
 class LoginScreen extends StatefulWidget {
@@ -23,6 +22,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController referralCodeController = TextEditingController();
 
   // Default selected country: India
   Country _selectedCountry = kCountries.firstWhere((c) => c.code == 'IN');
@@ -68,20 +68,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // ── Location ─────────────────────────────────────────────────────────────
-    String latitude  = prefs.getString('latitude')  ?? '';
+    String latitude = prefs.getString('latitude') ?? '';
     String longitude = prefs.getString('longitude') ?? '';
 
     if (latitude.isEmpty || longitude.isEmpty) {
       final coords = await _fetchLocation();
-      latitude  = coords.$1;
+      latitude = coords.$1;
       longitude = coords.$2;
-      await prefs.setString('latitude',  latitude);
+      await prefs.setString('latitude', latitude);
       await prefs.setString('longitude', longitude);
     }
 
     setState(() {
-      _deviceId  = deviceId;
-      _latitude  = latitude;
+      _deviceId = deviceId;
+      _latitude = latitude;
       _longitude = longitude;
     });
   }
@@ -140,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     phoneController.removeListener(_onPhoneChanged);
     phoneController.dispose();
+    referralCodeController.dispose();
     super.dispose();
   }
 
@@ -188,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
         deviceId: _deviceId,
         mobile: phoneController.text,
         appSignature: _appSignature,
+        referredByCode: referralCodeController.text.isNotEmpty ? referralCodeController.text : 'DIRECT',
       );
 
       final response = await LoginApi.sendOtp(request);
@@ -211,9 +213,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       } else {
-        _showError(response.errorMsg.isNotEmpty
-            ? response.errorMsg
-            : 'Failed to send OTP. Please try again.');
+        _showError(
+          response.errorMsg.isNotEmpty
+              ? response.errorMsg
+              : 'Failed to send OTP. Please try again.',
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -227,8 +231,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message,
-            style: const TextStyle(fontFamily: 'Lato', color: Colors.white)),
+        content: Text(
+          message,
+          style: const TextStyle(fontFamily: 'Lato', color: Colors.white),
+        ),
         backgroundColor: const Color(0xFFBE000C),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -238,9 +244,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     final bool isIncomplete =
-        _hasStartedTyping && _currentPhoneLength != _selectedCountry.phoneLength;
+        _hasStartedTyping &&
+        _currentPhoneLength != _selectedCountry.phoneLength;
 
     String? belowFieldText;
     Color belowFieldColor = const Color(0xFF817979);
@@ -267,7 +273,7 @@ class _LoginScreenState extends State<LoginScreen> {
             key: _formKey,
             child: Column(
               children: [
-                SizedBox(height: 40.h),
+                SizedBox(height: 120.h),
                 Center(
                   child: Image.asset(
                     'assets/login_image/true_motors_logo.png',
@@ -313,7 +319,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(
-                            _selectedCountry.phoneLength),
+                          _selectedCountry.phoneLength,
+                        ),
                       ],
                       style: TextStyle(
                         fontSize: 15.sp,
@@ -366,11 +373,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
-                          borderSide: const BorderSide(color: Color(0xFF817979)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF817979),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
-                          borderSide: const BorderSide(color: Color(0xFF817979)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF817979),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
@@ -395,113 +406,171 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-
-                // ── Send Code Via ────────────────────────────────────────────
-                SizedBox(height: 8.h),
+                SizedBox(height: 16.h),
+                
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Send OTP Via',
+                    'Referral Code (Optional)',
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.sp,
-                      color: const Color(0xFF817979),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 16.sp,
+                      color: const Color(0xFF000000),
                     ),
                   ),
                 ),
                 SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    // SMS option
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedOtpChannel = OtpChannel.sms;
-                          });
-                        },
-                        child: Container(
-                          height: 48.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: _selectedOtpChannel == OtpChannel.sms
-                                  ? const Color(0xFF005F65)
-                                  : const Color(0xFF817979),
-                              width: _selectedOtpChannel == OtpChannel.sms ? 1.5 : 1.0,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat,
-                                color: _selectedOtpChannel == OtpChannel.sms ? const Color(0xFF005F65) : const Color(0xFF817979),
-                                size: 20.r,
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                'SMS',
-                                style: TextStyle(
-                                  fontFamily: 'Lato',
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedOtpChannel == OtpChannel.sms ? const Color(0xFF005F65) : const Color(0xFF817979),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                TextField(
+                  controller: referralCodeController,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: 'Lato',
+                    color: const Color(0xFF000000),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter referral code',
+                    hintStyle: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Lato',
+                      color: const Color(0xFF686363),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 14.h,
+                      horizontal: 12.w,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF817979),
                       ),
                     ),
-                    SizedBox(width: 12.w),
-                    // WhatsApp option
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedOtpChannel = OtpChannel.whatsapp;
-                          });
-                        },
-                        child: Container(
-                          height: 48.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8.r),
-                            border: Border.all(
-                              color: _selectedOtpChannel == OtpChannel.whatsapp
-                                  ? const Color(0xFF005F65)
-                                  : const Color(0xFF817979),
-                              width: _selectedOtpChannel == OtpChannel.whatsapp ? 1.5 : 1.0,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                color: _selectedOtpChannel == OtpChannel.whatsapp ? const Color(0xFF005F65) : const Color(0xFF817979),
-                                size: 20.r,
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                'WhatsApp',
-                                style: TextStyle(
-                                  fontFamily: 'Lato',
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedOtpChannel == OtpChannel.whatsapp ? const Color(0xFF005F65) : const Color(0xFF817979),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF817979),
                       ),
                     ),
-                  ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF005F65),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
                 ),
+
+                // ── Send Code Via ────────────────────────────────────────────
+                // SizedBox(height: 8.h),
+                // Align(
+                //   alignment: Alignment.centerLeft,
+                //   child: Text(
+                //     'Send OTP Via',
+                //     style: TextStyle(
+                //       fontFamily: 'Poppins',
+                //       fontWeight: FontWeight.w500,
+                //       fontSize: 14.sp,
+                //       color: const Color(0xFF817979),
+                //     ),
+                //   ),
+                // ),
+                // SizedBox(height: 12.h),
+                // Row(
+                //   children: [
+                //     // SMS option
+                //     Expanded(
+                //       child: GestureDetector(
+                //         onTap: () {
+                //           setState(() {
+                //             _selectedOtpChannel = OtpChannel.sms;
+                //           });
+                //         },
+                //         child: Container(
+                //           height: 48.h,
+                //           decoration: BoxDecoration(
+                //             color: Colors.white,
+                //             borderRadius: BorderRadius.circular(8.r),
+                //             border: Border.all(
+                //               color: _selectedOtpChannel == OtpChannel.sms
+                //                   ? const Color(0xFF005F65)
+                //                   : const Color(0xFF817979),
+                //               width: _selectedOtpChannel == OtpChannel.sms ? 1.5 : 1.0,
+                //             ),
+                //           ),
+                //           child: Row(
+                //             mainAxisAlignment: MainAxisAlignment.center,
+                //             children: [
+                //               Icon(
+                //                 Icons.chat,
+                //                 color: _selectedOtpChannel == OtpChannel.sms ? const Color(0xFF005F65) : const Color(0xFF817979),
+                //                 size: 20.r,
+                //               ),
+                //               SizedBox(width: 8.w),
+                //               Text(
+                //                 'SMS',
+                //                 style: TextStyle(
+                //                   fontFamily: 'Lato',
+                //                   fontSize: 14.sp,
+                //                   fontWeight: FontWeight.w700,
+                //                   color: _selectedOtpChannel == OtpChannel.sms ? const Color(0xFF005F65) : const Color(0xFF817979),
+                //                 ),
+                //               ),
+                //             ],
+                //           ),
+                //         ),
+                //       ),
+                //     ),
+                //     SizedBox(width: 12.w),
+                //     // WhatsApp option
+                //     Expanded(
+                //       child: GestureDetector(
+                //         onTap: () {
+                //           setState(() {
+                //             _selectedOtpChannel = OtpChannel.whatsapp;
+                //           });
+                //         },
+                //         child: Container(
+                //           height: 48.h,
+                //           decoration: BoxDecoration(
+                //             color: Colors.white,
+                //             borderRadius: BorderRadius.circular(8.r),
+                //             border: Border.all(
+                //               color: _selectedOtpChannel == OtpChannel.whatsapp
+                //                   ? const Color(0xFF005F65)
+                //                   : const Color(0xFF817979),
+                //               width: _selectedOtpChannel == OtpChannel.whatsapp ? 1.5 : 1.0,
+                //             ),
+                //           ),
+                //           child: Row(
+                //             mainAxisAlignment: MainAxisAlignment.center,
+                //             children: [
+                //               Icon(
+                //                 Icons.chat_bubble_outline,
+                //                 color: _selectedOtpChannel == OtpChannel.whatsapp ? const Color(0xFF005F65) : const Color(0xFF817979),
+                //                 size: 20.r,
+                //               ),
+                //               SizedBox(width: 8.w),
+                //               Text(
+                //                 'WhatsApp',
+                //                 style: TextStyle(
+                //                   fontFamily: 'Lato',
+                //                   fontSize: 14.sp,
+                //                   fontWeight: FontWeight.w700,
+                //                   color: _selectedOtpChannel == OtpChannel.whatsapp ? const Color(0xFF005F65) : const Color(0xFF817979),
+                //                 ),
+                //               ),
+                //             ],
+                //           ),
+                //         ),
+                //       ),
+                //     ),
+                //   ],
+                // ),
 
                 // ── Get OTP Button ───────────────────────────────────────────
                 SizedBox(height: 24.h),
@@ -541,7 +610,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 20.h),
                 Row(
                   children: [
-                    const Expanded(child: Divider(color: Color(0xFFBDBDBD), thickness: 1)),
+                    const Expanded(
+                      child: Divider(color: Color(0xFFBDBDBD), thickness: 1),
+                    ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12.w),
                       child: Text(
@@ -554,7 +625,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    const Expanded(child: Divider(color: Color(0xFFBDBDBD), thickness: 1)),
+                    const Expanded(
+                      child: Divider(color: Color(0xFFBDBDBD), thickness: 1),
+                    ),
                   ],
                 ),
                 SizedBox(height: 20.h),
@@ -563,7 +636,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 48.h,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF005F65), width: 1.5),
+                      side: const BorderSide(
+                        color: Color(0xFF005F65),
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.r),
                       ),
@@ -572,7 +648,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const DealerCategorySelectionScreen(),
+                          builder: (context) =>
+                              const DealerCategorySelectionScreen(),
                         ),
                       );
                     },
@@ -622,7 +699,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-
 // ─── Country Picker Bottom Sheet ─────────────────────────────────────────────
 
 class _CountryPickerSheet extends StatefulWidget {
@@ -646,8 +722,9 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
     setState(() {
       final q = query.toLowerCase();
       _filtered = kCountries
-          .where((c) =>
-      c.name.toLowerCase().contains(q) || c.dialCode.contains(q))
+          .where(
+            (c) => c.name.toLowerCase().contains(q) || c.dialCode.contains(q),
+          )
           .toList();
     });
   }
@@ -707,12 +784,17 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
                   fontFamily: 'Lato',
                   fontSize: 14,
                 ),
-                prefixIcon:
-                Icon(Icons.search, color: Color(0xFF817979), size: 20),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Color(0xFF817979),
+                  size: 20,
+                ),
                 filled: true,
                 fillColor: Color(0xFFF5F5F5),
-                contentPadding:
-                EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
@@ -726,49 +808,52 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
           Expanded(
             child: _filtered.isEmpty
                 ? Center(
-              child: Text(
-                'No country found',
-                style: TextStyle(
-                  color: Color(0xFF817979),
-                  fontFamily: 'Lato',
-                ),
-              ),
-            )
-                : ListView.builder(
-              itemCount: _filtered.length,
-              itemBuilder: (context, index) {
-                final country = _filtered[index];
-                final isSelected =
-                    country.code == widget.selectedCountry.code;
-
-                return ListTile(
-                  dense: true,
-                  onTap: () {
-                    widget.onCountrySelected(country);
-                    Navigator.pop(context);
-                  },
-                  leading: Text(
-                    country.flag,
-                    style: TextStyle(fontSize: 24),
-                  ),
-                  title: Text(
-                    '${country.dialCode}   ${country.name}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'Lato',
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w400,
-                      color: Color(0xFF000000),
+                    child: Text(
+                      'No country found',
+                      style: TextStyle(
+                        color: Color(0xFF817979),
+                        fontFamily: 'Lato',
+                      ),
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: _filtered.length,
+                    itemBuilder: (context, index) {
+                      final country = _filtered[index];
+                      final isSelected =
+                          country.code == widget.selectedCountry.code;
+
+                      return ListTile(
+                        dense: true,
+                        onTap: () {
+                          widget.onCountrySelected(country);
+                          Navigator.pop(context);
+                        },
+                        leading: Text(
+                          country.flag,
+                          style: TextStyle(fontSize: 24),
+                        ),
+                        title: Text(
+                          '${country.dialCode}   ${country.name}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'Lato',
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w400,
+                            color: Color(0xFF000000),
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF005F65),
+                                size: 20,
+                              )
+                            : null,
+                      );
+                    },
                   ),
-                  trailing: isSelected
-                      ? Icon(Icons.check_circle,
-                      color: Color(0xFF005F65), size: 20)
-                      : null,
-                );
-              },
-            ),
           ),
         ],
       ),

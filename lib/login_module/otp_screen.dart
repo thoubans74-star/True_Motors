@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:true_motors/login_module/login_screen.dart';
 import 'package:true_motors/login_module/signup_screen.dart';
+import 'package:true_motors/app_drawer_module/home_screen.dart';
 import 'package:true_motors/provider/otp_screen_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -97,19 +98,28 @@ class _OtpScreenState extends State<OtpScreen> {
         // Save persistent login data
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', response.userId);
-        await prefs.setString('token', response.token);
+        await prefs.setString('token', response.fToken);
         await prefs.setString('phone', response.mobile);
         
-        // Success — navigate to SignupScreen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SignupScreen(),
-          ),
-        );
+        // Success — navigate based on profile completion status
+        if (response.isProfileComplete) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HomeScreen(),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SignupScreen(),
+            ),
+          );
+        }
       } else {
-        _showError(response.message.isNotEmpty
-            ? response.message
+        _showError(response.errorMsg.isNotEmpty
+            ? response.errorMsg
             : 'OTP verification failed. Please try again.');
       }
     } catch (e) {

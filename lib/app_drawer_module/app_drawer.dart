@@ -5,19 +5,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:true_motors/menu_module/terms_and_privacy.dart';
 import 'package:true_motors/lease_module/dashboard_screen.dart';
 import 'package:true_motors/login_module/splash_screen.dart';
 import 'package:true_motors/menu_module/my_listing_screen.dart';
 import 'package:true_motors/menu_module/saved_vehicle_screen.dart';
 import 'package:true_motors/menu_module/notification_alert_screen.dart';
 import 'package:true_motors/menu_module/help_support_screen.dart';
-
 import 'package:true_motors/menu_module/language_screen.dart';
 import 'package:true_motors/menu_module/subscription_screen.dart';
 import 'package:true_motors/menu_module/profile_information_screen.dart';
 import 'package:true_motors/menu_module/my_booking_screen.dart';
 import 'package:true_motors/provider/profile_update_provider.dart';
+import 'package:true_motors/provider/logout_provider.dart';
 
 class AppDrawer extends StatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -321,6 +321,19 @@ class _AppDrawerState extends State<AppDrawer> {
                       onPressed: () async {
                         final navigator = Navigator.of(context);
                         final prefs = await SharedPreferences.getInstance();
+                        
+                        final String token = prefs.getString('token') ?? '';
+                        final int userId = prefs.getInt('user_id') ?? 0;
+                        try {
+                          await LogoutApi.logout(LogoutRequest(
+                            cid: '21472147',
+                            token: token,
+                            ledId: userId.toString(),
+                          ));
+                        } catch (e) {
+                          print('[AppDrawer] Logout error: $e');
+                        }
+
                         await prefs.remove('profile_image_path');
                         await prefs.remove('profile_image_url');
                         await prefs.remove('phone');
@@ -581,6 +594,13 @@ class _AppDrawerState extends State<AppDrawer> {
                             label: 'Subscription',
                             onTap: () => _pushAndReopenDrawer(
                                 const SubscriptionScreen()),
+                          ),
+                          _buildMenuItem(
+                            imagePath:
+                                'assets/drawer_image/terms_privacy.png',
+                            label: 'Terms & Privacy',
+                            onTap: () => _pushAndReopenDrawer(
+                                const TermsAndPrivacyScreen()),
                           ),
                           _buildMenuItem(
                             imagePath:

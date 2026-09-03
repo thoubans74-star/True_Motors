@@ -22,31 +22,46 @@ class OtpRequest {
 
 class OtpResponse {
   final bool error;
-  final String message;
+  final String errorMsg;
   final String mobile;
   final int cid;
   final int userId;
-  final String token;
-  final dynamic details;
+  final String fToken;
+  final String compName;
+  final String name;
+  final String profileImage;
+  final String deviceId;
+  final String lastLogin;
+  final bool isProfileComplete;
 
   const OtpResponse({
     required this.error,
-    required this.message,
+    required this.errorMsg,
     required this.mobile,
     required this.cid,
     required this.userId,
-    required this.token,
-    required this.details,
+    required this.fToken,
+    required this.compName,
+    required this.name,
+    required this.profileImage,
+    required this.deviceId,
+    required this.lastLogin,
+    required this.isProfileComplete,
   });
 
   factory OtpResponse.fromJson(Map<String, dynamic> json) => OtpResponse(
     error: json['error'] ?? true,
-    message: json['message'] ?? '',
+    errorMsg: json['error_msg'] ?? '',
     mobile: json['mobile']?.toString() ?? '',
     cid: int.tryParse(json['cid']?.toString() ?? '0') ?? 0,
     userId: int.tryParse(json['user_id']?.toString() ?? '0') ?? 0,
-    token: json['token'] ?? '',
-    details: json['details'],
+    fToken: json['f_token'] ?? '',
+    compName: json['comp_name'] ?? '',
+    name: json['name'] ?? '',
+    profileImage: json['profile_image'] ?? '',
+    deviceId: json['device_id']?.toString() ?? '',
+    lastLogin: json['last_login'] ?? '',
+    isProfileComplete: json['is_profile_complete'] ?? false,
   );
 }
 
@@ -87,7 +102,7 @@ class OtpApi {
       'type':      '2501',
       'mobile':    request.mobile,
       'otp':       request.otp,
-      'token':     request.token,
+      'f_token':   request.token,
     };
 
     // ── Print request ──────────────────────────────────────────────────────

@@ -54,8 +54,10 @@ class ProfileModel {
     String state = addressParts.length > 4 ? addressParts[4] : '';
     String pincode = addressParts.length > 5 ? addressParts[5] : '';
 
-    final imgUrl = dataMap['Image']?.toString() ??
+    final imgUrl = dataMap['profile_image']?.toString() ??
+        dataMap['Image']?.toString() ??
         dataMap['image']?.toString() ??
+        json['profile_image']?.toString() ??
         json['Image']?.toString() ??
         json['image']?.toString() ??
         '';
@@ -140,7 +142,7 @@ class ProfileUpdateProvider with ChangeNotifier {
         'type': '2507',
         'cid': cid,
         'led_id': ledId,
-        'token': token,
+        'f_token': token,
         'device_id': deviceId,
         'ln': ln,
         'lt': lt,
@@ -172,8 +174,8 @@ class ProfileUpdateProvider with ChangeNotifier {
       final Map<String, dynamic> json = jsonDecode(cleanJson);
 
       if (json['status'] == 'success' || json['error'] == false || json['data'] != null) {
-        if (json['token'] != null && json['token'].toString().isNotEmpty) {
-          await SharedPrefsHelper.setToken(json['token'].toString());
+        if (json['f_token'] != null && json['f_token'].toString().isNotEmpty) {
+          await SharedPrefsHelper.setToken(json['f_token'].toString());
         }
 
         if (json['data'] != null && json['data'] is Map<String, dynamic>) {
@@ -227,7 +229,7 @@ class ProfileUpdateProvider with ChangeNotifier {
         'type': '2508',
         'cid': cid,
         'led_id': ledId,
-        'token': token,
+        'f_token': token,
         'name': name,
         'email': email,
         'mobile': mobile,
@@ -266,21 +268,13 @@ class ProfileUpdateProvider with ChangeNotifier {
 
         final mimeType = MediaType('image', subtype);
 
-        final multipartFileUpper = await http.MultipartFile.fromPath(
-          'Image',
+        final multipartFile = await http.MultipartFile.fromPath(
+          'profile_image',
           profileImageFile.path,
           filename: fileName,
           contentType: mimeType,
         );
-        request.files.add(multipartFileUpper);
-
-        final multipartFileLower = await http.MultipartFile.fromPath(
-          'image',
-          profileImageFile.path,
-          filename: fileName,
-          contentType: mimeType,
-        );
-        request.files.add(multipartFileLower);
+        request.files.add(multipartFile);
 
         final streamedResponse = await request.send();
         statusCode = streamedResponse.statusCode;
@@ -310,8 +304,8 @@ class ProfileUpdateProvider with ChangeNotifier {
       final prevImageUrl = _profile.imageUrl;
 
       if (json['status'] == 'success' || json['error'] == false || json['data'] != null) {
-        if (json['token'] != null && json['token'].toString().isNotEmpty) {
-          await SharedPrefsHelper.setToken(json['token'].toString());
+        if (json['f_token'] != null && json['f_token'].toString().isNotEmpty) {
+          await SharedPrefsHelper.setToken(json['f_token'].toString());
         }
 
         _profile = ProfileModel.fromJson(json);

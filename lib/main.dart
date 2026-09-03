@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:true_motors/login_module/splash_screen.dart';
 import 'package:true_motors/provider/profile_update_provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
+import 'package:true_motors/provider/subscription_provider.dart';
+import 'package:true_motors/provider/terms_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +22,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => UsedVehicleProvider()),
         ChangeNotifierProvider(create: (_) => ProfileUpdateProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(create: (_) => TermsProvider()),
       ],
       child: const MyApp(),
     ),
