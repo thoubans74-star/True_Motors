@@ -47,20 +47,11 @@ class SellCarPhotoScreen extends StatefulWidget {
 class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _selectedImages = [];
-  final TextEditingController _additionalInfoController =
-  TextEditingController();
-  bool _allowTestDrive = false;
+  final TextEditingController _priceController = TextEditingController();
+  bool _isNegotiable = true;
 
   // Validation
   String? _photoError;
-
-  static const int _maxWordCount = 200;
-
-  int get _wordCount {
-    final text = _additionalInfoController.text.trim();
-    if (text.isEmpty) return 0;
-    return text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-  }
 
   // ── Image picking ─────────────────────────────────────────────────────────
 
@@ -146,12 +137,12 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
             kmDriven: widget.kmDriven,
             location: widget.location,
             rto: widget.rto,
-            price: widget.price,
+            price: _priceController.text.trim(),
             insuranceDate: widget.insuranceDate,
             features: widget.features,
             images: _selectedImages,
-            allowTestDrive: _allowTestDrive,
-            additionalInfo: _additionalInfoController.text.trim(),
+            allowTestDrive: false,
+            additionalInfo: '',
           ),
         ),
       );
@@ -160,7 +151,7 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
 
   @override
   void dispose() {
-    _additionalInfoController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -194,13 +185,43 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                       _buildPromoBanner(),
                       SizedBox(height: 12.h),
 
-                      // Title
                       Text(
-                        'Sell Vehicle - ${widget.registrationNumber}',
+                        'Photos & price',
                         style: TextStyle(
-                            fontSize: 15.sp, fontWeight: FontWeight.w600),
+                            fontSize: 16.sp, fontWeight: FontWeight.w600),
                       ),
-                      SizedBox(height: 14.h),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Listings with 4+ photos and a clear price get more genuine enquiries.',
+                        style: TextStyle(
+                            fontSize: 12.sp, color: Colors.black54),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F3F3),
+                          border: Border.all(color: Colors.black),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          widget.registrationNumber,
+                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+
+                      Text(
+                        'Vehicle photos',
+                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Up to 5MB per image · JPG or PNG',
+                        style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+                      ),
+                      SizedBox(height: 12.h),
 
                       // ── Dashed upload box (always visible) ────────────────
                       _buildDashedUploadBox(),
@@ -225,218 +246,137 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                       // ── Add more images ───────────────────────────────────
                       GestureDetector(
                         onTap: _openGallery,
-                        child: Row(
-                          children: [
-                            Icon(Icons.add, color: const Color(0xFF742B88), size: 20.r),
-                            SizedBox(width: 6.w),
-                            Text(
-                              'Add more images',
-                              style: TextStyle(
-                                fontFamily: 'Lato',
-                                  color: const Color(0xFF742B88),
-                                  fontSize: 14.5.sp,
-                                  fontWeight: FontWeight.w400),
-                            ),
-                          ],
+                        child: Text(
+                          '+ Add More photo',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF005F65),
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 24.h),
 
-                      // ── Terms & Conditions button ─────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TermsAndConditionsScreen(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
+                      // ── Price ─────────────────────────────────────────────
+                      Text(
+                        'Price',
+                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Expected selling price',
+                        style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: _priceController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: TextStyle(fontSize: 14.sp),
+                        decoration: InputDecoration(
+                          hintText: 'e.g.698000',
+                          hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                          prefixIcon: Padding(
+                            padding: EdgeInsets.all(12.w),
+                            child: Text(
+                              '₹',
+                              style: TextStyle(fontSize: 16.sp, color: const Color(0xFF005F65), fontWeight: FontWeight.w600),
                             ),
                           ),
-                          child: Ink(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8.r),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFFD59090),
-                                  Color(0xFFDF7B7B),
-                                ],
-                              ),
-                            ),
+                          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(color: Color(0xFFE2E2E2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: const BorderSide(color: Color(0xFF005F65)),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+
+                      // ── Price negotiable? ─────────────────────────────────
+                      Text(
+                        'Price negotiable?',
+                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                      ),
+                      SizedBox(height: 12.h),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => setState(() => _isNegotiable = true),
                             child: Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              width: 70.w,
+                              height: 36.h,
+                              decoration: BoxDecoration(
+                                color: _isNegotiable ? const Color(0xFF742B88) : Colors.white,
+                                border: Border.all(
+                                    color: _isNegotiable
+                                        ? const Color(0xFF742B88)
+                                        : const Color(0xFFE2E2E2)),
+                              ),
                               alignment: Alignment.center,
                               child: Text(
-                                'Terms & Conditions For Sell Vehicle',
+                                'Yes',
                                 style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14.sp,
-                                  fontFamily: 'Lato'
+                                  fontSize: 13.sp,
+                                  color: _isNegotiable ? Colors.white : Colors.black,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // ── Allow Test Drive ──────────────────────────────────
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 22.r,
-                            height: 22.r,
-                            child: Checkbox(
-                              value: _allowTestDrive,
-                              activeColor: const Color(0xFF005F65),
-                              side: const BorderSide(
-                                width: 1.2,
-                                color: Color(0xFF742B88)
+                          GestureDetector(
+                            onTap: () => setState(() => _isNegotiable = false),
+                            child: Container(
+                              width: 70.w,
+                              height: 36.h,
+                              decoration: BoxDecoration(
+                                color: !_isNegotiable ? const Color(0xFF742B88) : Colors.white,
+                                border: Border.all(
+                                    color: !_isNegotiable
+                                        ? const Color(0xFF742B88)
+                                        : const Color(0xFFE2E2E2)),
                               ),
-                              onChanged: (v) =>
-                                  setState(() => _allowTestDrive = v ?? false),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Allow Test drive',
-                            style: TextStyle(
-                                fontSize: 13.5.sp, color: Colors.black),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // ── Additional Info ───────────────────────────────────
-                      Text(
-                        'Additional Info (Optional)',
-                        style: TextStyle(
-                            fontSize: 13.5.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: _additionalInfoController,
-                        maxLines: 5,
-                        style: TextStyle(fontSize: 13.5.sp),
-                        onChanged: (text) {
-                          final words = text
-                              .trim()
-                              .split(RegExp(r'\s+'))
-                              .where((w) => w.isNotEmpty)
-                              .toList();
-                          if (words.length > _maxWordCount) {
-                            final trimmed =
-                            words.take(_maxWordCount).join(' ');
-                            _additionalInfoController.value =
-                                TextEditingValue(
-                                  text: trimmed,
-                                  selection: TextSelection.collapsed(
-                                      offset: trimmed.length),
-                                );
-                          }
-                          setState(() {});
-                        },
-                        decoration: InputDecoration(
-                          hintText:
-                          'Describe your vehicle',
-                          hintStyle: TextStyle(
-                              color: Colors.grey, fontSize: 13.sp),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide:
-                            const BorderSide(color: Color(0xFFD4D4D4)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide:
-                            const BorderSide(color: Color(0xFFD4D4D4)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(
-                                color: Color(0xFF005F65)),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.all(12.w),
-                        ),
-                      ),
-                      // Word counter
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Text(
-                            '$_wordCount / $_maxWordCount words',
-                            style: TextStyle(
-                              fontSize: 11.5.sp,
-                              color: _wordCount >= _maxWordCount
-                                  ? Colors.red
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // ── Navigation buttons ────────────────────────────────
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 12.h),
-                                side: const BorderSide(
-                                    color: Color(0xFF005F65)),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r)),
-                              ),
+                              alignment: Alignment.center,
                               child: Text(
-                                'Previous',
+                                'No',
                                 style: TextStyle(
-                                    color: const Color(0xFF005F65),
-                                    fontWeight: FontWeight.w700, fontSize: 14.5.sp),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: _onSaveAndNext,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF005F65),
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 12.h),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.r)),
-                              ),
-                              child: Text(
-                                'Save & Next',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14.5.sp),
+                                  fontSize: 13.sp,
+                                  color: !_isNegotiable ? Colors.white : Colors.black,
+                                ),
                               ),
                             ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 40.h),
+
+                      Center(
+                        child: SizedBox(
+                          width: 230.w,
+                          height: 48.h,
+                          child: ElevatedButton(
+                            onPressed: _onSaveAndNext,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF005F65),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r)),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Submit',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp),
+                            ),
+                          ),
+                        ),
                       ),
                       SizedBox(height: 16.h),
                     ],
@@ -558,19 +498,18 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
     );
   }
 
-  // ── Dashed upload box — always visible, matches Figma exactly ────────────
   Widget _buildDashedUploadBox() {
     return CustomPaint(
       painter: _DashedBorderPainter(
-        color: const Color(0xFF005F65),
+        color: const Color(0xFF742B88),
         borderRadius: 12.r,
         dashWidth: 10.w,
         dashSpace: 8.w,
-        strokeWidth: 3.w,
+        strokeWidth: 2.w,
       ),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 40.w),
+        padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 40.w),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12.r),
@@ -578,72 +517,33 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Text first (matches Figma order)
-            Text(
-              'Tap to upload your photo',
-              style: TextStyle(
-                fontSize: 14.5.sp,
-                color: Colors.black,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            SizedBox(height: 8.h),
-
-            // Cloud icon — tapping opens file picker
-            GestureDetector(
-              onTap: _openFilePicker,
-              child: Image.asset('assets/sell_image/cloud.png',
-                height: 44.r,
-                width: 44.r,
-              )
-            ),
-            SizedBox(height: 8.h),
+            // Icon
+            Icon(Icons.add_photo_alternate_outlined, size: 48.r, color: Colors.black87),
+            SizedBox(height: 12.h),
 
             // Max size label
             Text(
               'Maximum 5 MB file size',
-              style: TextStyle(fontSize: 13.5.sp, color: Colors.black),
+              style: TextStyle(fontSize: 14.sp, color: Colors.black),
             ),
-            SizedBox(height: 14.h),
+            SizedBox(height: 16.h),
 
-            // Divider with "or"
-            Row(
-              children: [
-                const Expanded(
-                  child: Divider(
-                      color: Color(0xFFBABABA), thickness: 1),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  child: Text(
-                    'or',
-                    style: TextStyle(fontSize: 13.5.sp, color: Colors.black),
-                  ),
-                ),
-                const Expanded(
-                  child: Divider(
-                      color: Color(0xFFBABABA), thickness: 1),
-                ),
-              ],
-            ),
-            SizedBox(height: 14.h),
-
-            // Open Camera button
+            // Upload Image button
             SizedBox(
-              width: 170.w,
+              width: 140.w,
               child: ElevatedButton(
-                onPressed: _openCamera,
+                onPressed: _openGallery,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF005F65),
+                  backgroundColor: const Color(0xFF742B88),
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r)),
+                      borderRadius: BorderRadius.circular(6.r)),
                 ),
                 child: Text(
-                  'Open Camera',
+                  'Upload Image',
                   style: TextStyle(
-                      fontSize: 14.5.sp, fontWeight: FontWeight.w700),
+                      fontSize: 13.sp, fontWeight: FontWeight.w600),
                 ),
               ),
             ),

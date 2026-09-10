@@ -37,6 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // Show empty-field error only after Get OTP is tapped with empty field
   bool _showEmptyError = false;
 
+  // Track if user wants to enter referral code
+  bool _hasReferralCode = false;
+
   // API loading state
   bool _isLoading = false;
 
@@ -273,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
             key: _formKey,
             child: Column(
               children: [
-                SizedBox(height: 120.h),
+                SizedBox(height: 60.h),
                 Center(
                   child: Image.asset(
                     'assets/login_image/true_motors_logo.png',
@@ -408,62 +411,121 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: 16.h),
                 
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Referral Code (Optional)',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 16.sp,
-                      color: const Color(0xFF000000),
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24.r,
+                      width: 24.r,
+                      child: Checkbox(
+                        value: _hasReferralCode,
+                        onChanged: (value) {
+                          setState(() {
+                            _hasReferralCode = value ?? false;
+                            if (!_hasReferralCode) {
+                              referralCodeController.clear();
+                            }
+                          });
+                        },
+                        activeColor: const Color(0xFF005F65),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF817979),
+                          width: 1.5,
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'I have a referral code',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16.sp,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12.h),
-                TextField(
-                  controller: referralCodeController,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w400,
-                    fontFamily: 'Lato',
-                    color: const Color(0xFF000000),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Enter referral code',
-                    hintStyle: TextStyle(
+                if (_hasReferralCode) ...[
+                  SizedBox(height: 12.h),
+                  TextField(
+                    controller: referralCodeController,
+                    style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'Lato',
-                      color: const Color(0xFF686363),
+                      color: const Color(0xFF000000),
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: 14.h,
-                      horizontal: 12.w,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF817979),
+                    decoration: InputDecoration(
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(8.r),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9), // Light green
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.file_upload_outlined, color: const Color(0xFF4CAF50), size: 16.r),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'GUIDE',
+                                style: TextStyle(
+                                  color: const Color(0xFF000000),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF817979),
+                      hintText: '',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 14.h,
+                        horizontal: 12.w,
                       ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.r),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF005F65),
-                        width: 1.5,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF005F65), // matching active purple border style from image -> our primary color
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF005F65),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF005F65),
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  SizedBox(height: 6.h),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Enter the 6-digit referral code.',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontFamily: 'Lato',
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF817979),
+                      ),
+                    ),
+                  ),
+                ],
 
                 // ── Send Code Via ────────────────────────────────────────────
                 // SizedBox(height: 8.h),

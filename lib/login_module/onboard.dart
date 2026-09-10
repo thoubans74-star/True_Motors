@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:true_motors/login_module/login_screen.dart';
 
-
 class OnboardScreen extends StatefulWidget {
   const OnboardScreen({super.key});
 
@@ -33,8 +32,12 @@ class _OnboardScreenState extends State<OnboardScreen> {
               });
             },
             children: [
-              SingleChildScrollView(child: _buildFirstPage(width, height, primaryColor)),
-              SingleChildScrollView(child: _buildSecondPage(width, height, primaryColor)),
+              SingleChildScrollView(
+                child: _buildFirstPage(width, height, primaryColor),
+              ),
+              SingleChildScrollView(
+                child: _buildSecondPage(width, height, primaryColor),
+              ),
             ],
           ),
 
@@ -46,7 +49,11 @@ class _OnboardScreenState extends State<OnboardScreen> {
               child: InkWell(
                 onTap: () {
                   Navigator.pushReplacement(
-                      context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
                 },
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -54,13 +61,18 @@ class _OnboardScreenState extends State<OnboardScreen> {
                     Text(
                       'Skip',
                       style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Poppins',
-                          color: primaryColor),
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Poppins',
+                        color: primaryColor,
+                      ),
                     ),
                     SizedBox(width: 4.w),
-                    Icon(Icons.arrow_forward_ios, size: 14.r, color: primaryColor)
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14.r,
+                      color: primaryColor,
+                    ),
                   ],
                 ),
               ),
@@ -87,8 +99,11 @@ class _OnboardScreenState extends State<OnboardScreen> {
                           width: currentPage == index ? 30.w : 10.w,
                           height: 10.h,
                           decoration: BoxDecoration(
-                              color: currentPage == index ? primaryColor : const Color(0xFFD9D9D9),
-                              borderRadius: BorderRadius.circular(10.r)),
+                            color: currentPage == index
+                                ? primaryColor
+                                : const Color(0xFFD9D9D9),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
                         );
                       }),
                     ),
@@ -116,12 +131,17 @@ class _OnboardScreenState extends State<OnboardScreen> {
                                     Text(
                                       'Swipe',
                                       style: TextStyle(
-                                          color: primaryColor,
-                                          fontSize: 20.sp,
-                                          fontFamily: 'Poppins',
-                                          fontWeight: FontWeight.w600),
+                                        color: primaryColor,
+                                        fontSize: 20.sp,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                    Icon(Icons.keyboard_double_arrow_right, color: primaryColor, size: 28.r),
+                                    Icon(
+                                      Icons.keyboard_double_arrow_right,
+                                      color: primaryColor,
+                                      size: 28.r,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -131,147 +151,225 @@ class _OnboardScreenState extends State<OnboardScreen> {
                               buttonHeight: 52.h,
                               onSwipeRight: () {
                                 Navigator.pushReplacement(
-                                    context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginScreen(),
+                                  ),
+                                );
                               },
                             ),
                     ),
                   ),
-                  SizedBox(height: 20.h)
+                  SizedBox(height: 20.h),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
   Widget _buildFirstPage(double width, double height, Color primaryColor) {
-    return Padding(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20.h,
-        bottom: 90.h,
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/icons/background.png'),
+          fit: BoxFit.cover,
+        ),
       ),
-      child: Column(
-        children: [
-          // Logo
-          Image.asset(
-            'assets/login_image/true_motors_logo.png',
-            height: 60.h,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) =>
-                Text("TRUE MOTORS", style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: const Color(0xFF005F65))),
-          ),
-          SizedBox(height: 12.h),
-          
-          // Title
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, fontFamily: 'Poppins', height: 1.3),
-              children: [
-                const TextSpan(text: 'All Your Vehicle Needs,\n', style: TextStyle(color: Color(0xFF0A1931))),
-                const TextSpan(text: 'All in One ', style: TextStyle(color: Color(0xFF1E3A8A))),
-                TextSpan(text: 'Place', style: TextStyle(color: primaryColor)),
-              ],
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 50.h,
+          bottom: 120.h,
+        ),
+        child: Column(
+          children: [
+            // Logo
+            Image.asset(
+              'assets/login_image/true_motors_logo.png',
+              height: 60.h,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Text(
+                "TRUE MOTORS",
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF005F65),
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: 16.h),
+            SizedBox(height: 20.h),
 
-          // Central Graphic Area
-          SizedBox(
-            height: 320.h,
-            width: 340.w,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Gradient Ring
-                Container(
-                  width: 280.w,
-                  height: 280.h,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: SweepGradient(
-                      colors: [
-                        Color(0xFF4C66C3),
-                        Color(0xFFC77B63),
-                        Color(0xFF4CAF50),
-                        Color(0xFF1E3A8A),
-                        Color(0xFF4C66C3),
-                      ],
-                    )
+            // Title
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins',
+                  height: 1.3,
+                ),
+                children: [
+                  const TextSpan(
+                    text: 'All Your Vehicle Needs,\n',
+                    style: TextStyle(color: Color(0xFF0A1931)),
                   ),
-                  child: Center(
-                    child: Container(
-                      width: 264.w,
-                      height: 264.h,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
+                  const TextSpan(
+                    text: 'All in One ',
+                    style: TextStyle(color: Color(0xFF1E3A8A)),
+                  ),
+                  TextSpan(
+                    text: 'Place',
+                    style: TextStyle(color: primaryColor),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 35.h),
+
+            // Central Graphic Area
+            SizedBox(
+              height: 320.h,
+              width: 340.w,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Gradient Ring
+                  Container(
+                    width: 280.w,
+                    height: 280.h,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: SweepGradient(
+                        colors: [
+                          Color(0xFF4C66C3),
+                          Color(0xFFC77B63),
+                          Color(0xFF4CAF50),
+                          Color(0xFF1E3A8A),
+                          Color(0xFF4C66C3),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 264.w,
+                        height: 264.h,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                
-                // Central Car Image (now perfectly centered inside the circle)
-                Align(
-                  alignment: Alignment.center,
-                  child: Image.asset(
-                    'assets/onboarding_image/onboard_main.png',
-                    width: 240.w,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Icon(Icons.directions_car, size: 90.r, color: primaryColor),
+
+                  // Central Car Image (now perfectly centered inside the circle)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Image.asset(
+                      'assets/onboarding_image/onboard_main.png',
+                      width: 240.w,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.directions_car,
+                        size: 90.r,
+                        color: primaryColor,
+                      ),
+                    ),
                   ),
-                ),
 
-                // Floating Cards perfectly placed on the ring
-                Align(
-                  alignment: const Alignment(0, -1.08),
-                  child: _buildFloatingCard('Buy', 'assets/onboarding_image/onboard_buy.png', Colors.green, width),
-                ),
-                Align(
-                  alignment: const Alignment(-1.05, -0.32),
-                  child: _buildFloatingCard('Sell', 'assets/onboarding_image/onboard_sell.png', const Color(0xFF1E3A8A), width),
-                ),
-                Align(
-                  alignment: const Alignment(1.05, -0.32),
-                  child: _buildFloatingCard('Compare', '', const Color(0xFF1E3A8A), width),
-                ),
-                Align(
-                  alignment: const Alignment(-0.68, 0.85),
-                  child: _buildFloatingCard('Lease', 'assets/home_image/lease.png', Colors.orange, width),
-                ),
-                Align(
-                  alignment: const Alignment(0.68, 0.85),
-                  child: _buildFloatingCard('Rent','assets/home_image/rent.png', Colors.teal, width),
-                ),
-              ],
+                  // Floating Cards perfectly placed on the ring
+                  Align(
+                    alignment: const Alignment(0, -1.08),
+                    child: _buildFloatingCard(
+                      'Buy',
+                      'assets/onboarding_image/onboard_buy.png',
+                      Colors.green,
+                      width,
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(-1.05, -0.32),
+                    child: _buildFloatingCard(
+                      'Sell',
+                      'assets/onboarding_image/onboard_sell.png',
+                      const Color(0xFF1E3A8A),
+                      width,
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(1.05, -0.32),
+                    child: _buildFloatingCard(
+                      'Compare',
+                      '',
+                      const Color(0xFF1E3A8A),
+                      width,
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(-0.68, 0.85),
+                    child: _buildFloatingCard(
+                      'Lease',
+                      'assets/home_image/lease.png',
+                      Colors.orange,
+                      width,
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(0.68, 0.85),
+                    child: _buildFloatingCard(
+                      'Rent',
+                      'assets/home_image/rent.png',
+                      Colors.teal,
+                      width,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          SizedBox(height: 16.h),
+            SizedBox(height: 20.h),
 
-          // Bottom Features
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildFeatureImage('assets/onboarding_image/verified 1.png', 'Verified Listings', '100% Trusted'),
-                _buildFeatureImage('assets/onboarding_image/badge 1.png', 'Best Deals', 'Every Day'),
-                _buildFeatureImage('assets/onboarding_image/online-support 1.png', '24/7 Support', "We're Here"),
-              ],
+            // Bottom Features
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFeatureImage(
+                    'assets/onboarding_image/verified 1.png',
+                    'Verified Listings',
+                    '100% Trusted',
+                  ),
+                  _buildFeatureImage(
+                    'assets/onboarding_image/badge 1.png',
+                    'Best Deals',
+                    'Every Day',
+                  ),
+                  _buildFeatureImage(
+                    'assets/onboarding_image/online-support 1.png',
+                    '24/7 Support',
+                    "We're Here",
+                  ),
+                ],
+              ),
             ),
-          ),
-          
-          SizedBox(height: 16.h),
-        ],
+
+            SizedBox(height: 16.h),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFloatingCard(String title, String imagePath, Color titleColor, double width) {
+  Widget _buildFloatingCard(
+    String title,
+    String imagePath,
+    Color titleColor,
+    double width,
+  ) {
     return Container(
       width: 85.w,
       padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 2.w),
@@ -284,7 +382,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
             blurRadius: 10,
             spreadRadius: 2,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -302,19 +400,48 @@ class _OnboardScreenState extends State<OnboardScreen> {
                       Positioned(
                         right: -4.w,
                         top: 2.h,
-                        child: Image.asset('assets/onboarding_image/compare_2.png', width: 30.w, fit: BoxFit.contain, errorBuilder: (c,e,s) => const SizedBox()),
+                        child: Image.asset(
+                          'assets/onboarding_image/compare_2.png',
+                          width: 30.w,
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const SizedBox(),
+                        ),
                       ),
                       Positioned(
                         left: -2.w,
                         bottom: 0,
-                        child: Image.asset('assets/onboarding_image/compare_1.png', width: 36.w, fit: BoxFit.contain, errorBuilder: (c,e,s) => Icon(Icons.directions_car, color: titleColor, size: 26.r)),
+                        child: Image.asset(
+                          'assets/onboarding_image/compare_1.png',
+                          width: 36.w,
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => Icon(
+                            Icons.directions_car,
+                            color: titleColor,
+                            size: 26.r,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 )
-              : Image.asset(imagePath, width: 44.w, height: 44.h, fit: BoxFit.contain, errorBuilder: (c,e,s) => Icon(Icons.image, color: titleColor, size: 44.r)),
+              : Image.asset(
+                  imagePath,
+                  width: 44.w,
+                  height: 44.h,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) =>
+                      Icon(Icons.image, color: titleColor, size: 44.r),
+                ),
           SizedBox(height: 4.h),
-          Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.sp, fontFamily: 'Poppins', color: titleColor)),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 12.sp,
+              fontFamily: 'Poppins',
+              color: titleColor,
+            ),
+          ),
         ],
       ),
     );
@@ -325,15 +452,31 @@ class _OnboardScreenState extends State<OnboardScreen> {
       children: [
         Image.asset(
           imagePath,
-          width: 40.w,
-          height: 40.h,
+          width: 42.w,
+          height: 42.h,
           fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Icon(Icons.image_not_supported, size: 36.r),
+          errorBuilder: (context, error, stackTrace) =>
+              Icon(Icons.image_not_supported, size: 36.r),
         ),
-        SizedBox(height: 6.h),
-        Text(title, style: TextStyle(fontSize: 11.sp, fontFamily: 'Poppins', color: Colors.black, fontWeight: FontWeight.bold)),
+        SizedBox(height: 10.h),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontFamily: 'Poppins',
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         SizedBox(height: 2.h),
-        Text(subtitle, style: TextStyle(fontSize: 10.sp, fontFamily: 'Poppins', color: Colors.black87)),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11.sp,
+            fontFamily: 'Poppins',
+            color: Colors.black87,
+          ),
+        ),
       ],
     );
   }
@@ -343,15 +486,16 @@ class _OnboardScreenState extends State<OnboardScreen> {
       context: context,
       removeTop: true,
       child: Column(
-          children: [
-            // Main Image (Dealership)
-            Image.asset(
-              'assets/onboarding_image/onboard_2.jpg',
-              width: width,
-              fit: BoxFit.fitWidth,
-              errorBuilder: (context, error, stackTrace) => Icon(Icons.store, size: 90.r, color: primaryColor),
-            ),
-          SizedBox(height: 16.h),
+        children: [
+          // Main Image (Dealership)
+          Image.asset(
+            'assets/onboarding_image/onboard_2.jpg',
+            width: width,
+            fit: BoxFit.fitWidth,
+            errorBuilder: (context, error, stackTrace) =>
+                Icon(Icons.store, size: 90.r, color: primaryColor),
+          ),
+          SizedBox(height: 30.h),
 
           // Cards
           Padding(
@@ -364,14 +508,15 @@ class _OnboardScreenState extends State<OnboardScreen> {
                   title: 'Find Verified Dealers',
                   subtitle: 'Connect with trusted dealers\nnear you.',
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 12.h),
                 _buildInfoCard(
                   icon: Icons.verified_user_outlined,
                   iconColor: const Color(0xFF00BFA5), // Teal/Green
                   title: 'Verified & Reliable',
-                  subtitle: 'All dealers are verified for your\nsafety and confidence.',
+                  subtitle:
+                      'All dealers are verified for your\nsafety and confidence.',
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 12.h),
                 _buildInfoCard(
                   icon: Icons.group,
                   iconColor: const Color(0xFF6610F2), // Purple
@@ -387,7 +532,12 @@ class _OnboardScreenState extends State<OnboardScreen> {
     );
   }
 
-  Widget _buildInfoCard({required IconData icon, required Color iconColor, required String title, required String subtitle}) {
+  Widget _buildInfoCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+  }) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
@@ -399,7 +549,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -407,10 +557,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
           Container(
             width: 46.r,
             height: 46.r,
-            decoration: BoxDecoration(
-              color: iconColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
             child: Icon(icon, color: Colors.white, size: 26.r),
           ),
           SizedBox(width: 14.w),
@@ -421,8 +568,8 @@ class _OnboardScreenState extends State<OnboardScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
                     fontFamily: 'Poppins',
                     color: Colors.black87,
                   ),
@@ -431,7 +578,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 11.5.sp,
+                    fontSize: 12.sp,
                     color: Colors.black54,
                     fontFamily: 'Poppins',
                     height: 1.3,
@@ -439,7 +586,7 @@ class _OnboardScreenState extends State<OnboardScreen> {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -519,7 +666,11 @@ class _SwipeToStartButtonState extends State<SwipeToStartButton> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.keyboard_double_arrow_right, color: widget.primaryColor, size: 24.r),
+                    child: Icon(
+                      Icons.keyboard_double_arrow_right,
+                      color: widget.primaryColor,
+                      size: 24.r,
+                    ),
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:true_motors/menu_module/listing_manager.dart';
+import 'sell_vehicle_condition.dart';
 import 'sell_car_photo_screen.dart';
 
 class SellCarFormScreen extends StatefulWidget {
@@ -30,23 +31,23 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
   String? _selectedModel;
   String? _selectedFuelType;
   String? _selectedTransmission;
-  String? _selectedRegYear;
   String? _selectedLocation;
   String? _selectedRTO;
-  final List<String> _selectedFeatures = [];
+  String? _selectedOwner;
+  String? _selectedColor;
 
   // ── Which dropdown is currently open ──────────────────────────────────────
   String? _openDropdown;
 
   // ── Text controllers ───────────────────────────────────────────────────────
+  final TextEditingController _mfgYearController = TextEditingController();
   final TextEditingController _kmController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _insuranceController = TextEditingController();
+  final TextEditingController _regYearController = TextEditingController();
 
   // ── Text field errors ──────────────────────────────────────────────────────
   String? _kmError;
-  String? _priceError;
-  String? _insuranceError;
+  String? _mfgYearError;
+  String? _regYearError;
 
   // ── Lists ──────────────────────────────────────────────────────────────────
   final List<String> _brands = [
@@ -71,8 +72,6 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
     'LPG'
   ];
   final List<String> _transmissions = ['Manual', 'Automatic', 'AMT', 'DCT'];
-  final List<String> _years =
-  List.generate(20, (i) => (2024 - i).toString());
   final List<String> _locations = [
     'Coimbatore',
     'Chennai',
@@ -87,16 +86,23 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
     'TN 11',
     'TN 58',
   ];
-  final List<String> _features = [
-    'Air Conditioning',
-    'Power Steering',
-    'Airbags',
-    'Bluetooth',
+  final List<String> _owners = [
+    '1st Owner',
+    '2nd Owner',
+    '3rd Owner',
+    '4th+ Owner',
+  ];
+  final List<String> _colors = [
+    'White',
+    'Silver',
+    'Black',
+    'Grey',
+    'Red',
+    'Blue',
   ];
 
   // ── Field limits ───────────────────────────────────────────────────────────
   static const int _maxKmDigits = 7;
-  static const int _maxPriceDigits = 8;
 
   @override
   void initState() {
@@ -112,22 +118,19 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
         _selectedModel = existing.model;
         _selectedFuelType = existing.fuelType;
         _selectedTransmission = existing.transmission;
-        _selectedRegYear = existing.regYear;
         _selectedLocation = existing.location;
         _selectedRTO = existing.rto;
-        _selectedFeatures.addAll(existing.features);
         _kmController.text = existing.kmDriven;
-        _priceController.text = existing.price;
-        _insuranceController.text = existing.insuranceDate;
+        _regYearController.text = existing.regYear;
       }
     }
   }
 
   @override
   void dispose() {
+    _mfgYearController.dispose();
     _kmController.dispose();
-    _priceController.dispose();
-    _insuranceController.dispose();
+    _regYearController.dispose();
     super.dispose();
   }
 
@@ -138,6 +141,13 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
   bool _validateTextFields() {
     bool valid = true;
     setState(() {
+      if (_mfgYearController.text.trim().isEmpty) {
+        _mfgYearError = 'Required';
+        valid = false;
+      } else {
+        _mfgYearError = null;
+      }
+
       final km = _kmController.text.trim();
       if (km.isEmpty) {
         _kmError = 'Please enter kilometers driven';
@@ -152,25 +162,11 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
         }
       }
 
-      final price = _priceController.text.trim();
-      if (price.isEmpty) {
-        _priceError = 'Please enter a price';
+      if (_regYearController.text.trim().isEmpty) {
+        _regYearError = 'Required';
         valid = false;
       } else {
-        final val = int.tryParse(price);
-        if (val == null || val <= 0) {
-          _priceError = 'Enter a valid price greater than 0';
-          valid = false;
-        } else {
-          _priceError = null;
-        }
-      }
-
-      if (_insuranceController.text.trim().isEmpty) {
-        _insuranceError = 'Please select insurance validity date';
-        valid = false;
-      } else {
-        _insuranceError = null;
+        _regYearError = null;
       }
     });
     return valid;
@@ -182,9 +178,10 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
     if (_selectedModel == null) missing.add('Model');
     if (_selectedFuelType == null) missing.add('Fuel Type');
     if (_selectedTransmission == null) missing.add('Transmission');
-    if (_selectedRegYear == null) missing.add('Registration Year');
     if (_selectedLocation == null) missing.add('Location');
     if (_selectedRTO == null) missing.add('RTO');
+    if (_selectedOwner == null) missing.add('Owner');
+    if (_selectedColor == null) missing.add('Color');
     return missing;
   }
 
@@ -195,7 +192,7 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
     final missing = _missingDropdowns();
     final bool textFieldsValid = _validateTextFields();
 
-    if (missing.isNotEmpty || !textFieldsValid || _selectedFeatures.isEmpty) {
+    if (missing.isNotEmpty || !textFieldsValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
@@ -229,37 +226,37 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
           model: _selectedModel,
           fuelType: _selectedFuelType,
           transmission: _selectedTransmission,
-          regYear: _selectedRegYear,
+          regYear: _regYearController.text.trim(),
           kmDriven: _kmController.text.trim(),
           location: _selectedLocation,
           rto: _selectedRTO,
-          price: _priceController.text.trim(),
-          insuranceDate: _insuranceController.text.trim(),
-          features: List<String>.from(_selectedFeatures),
+          price: '0',
+          insuranceDate: '',
+          features: [],
         );
         ListingManager().updateListing(widget.editingListingId!, updated);
       }
       // Pop back to My Listing
       Navigator.pop(context);
     } else {
-      // New listing — continue to photo screen
+      // New listing — continue to condition screen
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => SellCarPhotoScreen(
+          builder: (_) => SellVehicleConditionScreen(
             registrationNumber: widget.registrationNumber,
             vehicleType: widget.vehicleType,
             brand: _selectedBrand!,
             model: _selectedModel!,
             fuelType: _selectedFuelType!,
             transmission: _selectedTransmission!,
-            regYear: _selectedRegYear!,
+            mfgYear: _mfgYearController.text.trim(),
             kmDriven: _kmController.text.trim(),
             location: _selectedLocation!,
             rto: _selectedRTO!,
-            price: _priceController.text.trim(),
-            insuranceDate: _insuranceController.text.trim(),
-            features: _selectedFeatures,
+            regYear: _regYearController.text.trim(),
+            owner: _selectedOwner!,
+            color: _selectedColor!,
           ),
         ),
       );
@@ -358,20 +355,36 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
                             _openDropdown = null;
                           }),
                         ),
-                        _buildInlineDropdown(
-                          key: 'year',
-                          label: 'Registration Year',
-                          value: _selectedRegYear,
-                          items: _years,
-                          onSelected: (v) => setState(() {
-                            _selectedRegYear = v;
-                            _openDropdown = null;
-                          }),
-                        ),
-
-                        // ── Kilometers Driven ─────────────────────────────────
                         _buildFloatingTextField(
-                          label: 'Kilometers Driven',
+                          label: 'manufacturing Year',
+                          controller: _mfgYearController,
+                          error: _mfgYearError,
+                          readOnly: true,
+                          suffixIcon: Icon(Icons.calendar_month_outlined,
+                              color: const Color(0xFF742B88), size: 20.r),
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(1980),
+                              lastDate: DateTime.now(),
+                              initialDatePickerMode: DatePickerMode.year,
+                              builder: (ctx, child) => Theme(
+                                data: Theme.of(ctx).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF005F65)),
+                                ),
+                                child: child!,
+                              ),
+                            );
+                            if (picked != null) {
+                              _mfgYearController.text = '${picked.year}';
+                              setState(() => _mfgYearError = null);
+                            }
+                          },
+                        ),
+                        _buildFloatingTextField(
+                          label: 'Kilometer Driven',
                           controller: _kmController,
                           error: _kmError,
                           keyboardType: TextInputType.number,
@@ -381,10 +394,9 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
                           ],
                           onChanged: (_) => setState(() => _kmError = null),
                         ),
-
                         _buildInlineDropdown(
                           key: 'location',
-                          label: 'Select Location',
+                          label: 'Location',
                           value: _selectedLocation,
                           items: _locations,
                           onSelected: (v) => setState(() {
@@ -402,35 +414,20 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
                             _openDropdown = null;
                           }),
                         ),
-
-                        // ── Price ─────────────────────────────────────────────
                         _buildFloatingTextField(
-                          label: 'Price',
-                          controller: _priceController,
-                          error: _priceError,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(_maxPriceDigits),
-                          ],
-                          onChanged: (_) => setState(() => _priceError = null),
-                        ),
-
-                        // ── Insurance Validity Date ───────────────────────────
-                        _buildFloatingTextField(
-                          label: 'Insurance Validity Date',
-                          controller: _insuranceController,
-                          error: _insuranceError,
+                          label: 'Registration Year',
+                          controller: _regYearController,
+                          error: _regYearError,
                           readOnly: true,
                           suffixIcon: Icon(Icons.calendar_month_outlined,
                               color: const Color(0xFF742B88), size: 20.r),
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: context,
-                              initialDate:
-                              DateTime.now().add(const Duration(days: 30)),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime(2035),
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(1980),
+                              lastDate: DateTime.now(),
+                              initialDatePickerMode: DatePickerMode.year,
                               builder: (ctx, child) => Theme(
                                 data: Theme.of(ctx).copyWith(
                                   colorScheme: const ColorScheme.light(
@@ -440,16 +437,31 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
                               ),
                             );
                             if (picked != null) {
-                              _insuranceController.text =
-                              '${picked.day}/${picked.month}/${picked.year}';
-                              setState(() => _insuranceError = null);
+                              _regYearController.text = '${picked.year}';
+                              setState(() => _regYearError = null);
                             }
                           },
                         ),
-
-                        // ── Feature Checklist (multi-select) ──────────────────
-                        _buildMultiSelectDropdown(),
-
+                        _buildInlineDropdown(
+                          key: 'owner',
+                          label: 'No of Owner',
+                          value: _selectedOwner,
+                          items: _owners,
+                          onSelected: (v) => setState(() {
+                            _selectedOwner = v;
+                            _openDropdown = null;
+                          }),
+                        ),
+                        _buildInlineDropdown(
+                          key: 'color',
+                          label: 'Choose Color',
+                          value: _selectedColor,
+                          items: _colors,
+                          onSelected: (v) => setState(() {
+                            _selectedColor = v;
+                            _openDropdown = null;
+                          }),
+                        ),
                         SizedBox(height: 24.h),
 
                         Center(
@@ -698,139 +710,7 @@ class _SellCarFormScreenState extends State<SellCarFormScreen> {
     );
   }
 
-  Widget _buildMultiSelectDropdown() {
-    const key = 'feature';
-    final isOpen = _openDropdown == key;
-    final hasValue = _selectedFeatures.isNotEmpty;
 
-    final displayText =
-    hasValue ? _selectedFeatures.join(', ') : 'Feature Checklist';
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Floating label above — only when features are selected
-          if (hasValue)
-            Padding(
-              padding: EdgeInsets.only(left: 8.w, bottom: 4.h),
-              child: Text(
-                'Feature Checklist',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: const Color(0xFF005F65),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-
-          // Header
-          GestureDetector(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              _toggleDropdown(key);
-            },
-            child: Container(
-              height: 46.h,
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(
-                  color: isOpen
-                      ? const Color(0xFF005F65)
-                      : const Color(0xFFE2E2E2),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      displayText,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5.sp,
-                        color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                    size: 24.r,
-                    color: const Color(0xFF742B88),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Items with checkbox on right
-          if (isOpen)
-            Column(
-              children: List.generate(_features.length, (index) {
-                final item = _features[index];
-                final isSelected = _selectedFeatures.contains(item);
-
-                return GestureDetector(
-                  onTap: () => setState(() {
-                    if (isSelected) {
-                      _selectedFeatures.remove(item);
-                    } else {
-                      _selectedFeatures.add(item);
-                    }
-                  }),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 6.h,
-                    ),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFFF4F4F4),
-                        border: Border.all(color: const Color(0xFFE2E2E2)),
-                        borderRadius: BorderRadius.circular(8.r)),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item,
-                            style: TextStyle(
-                              fontSize: 13.5.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                        Checkbox(
-                          value: isSelected,
-                          activeColor: const Color(0xFF005F65),
-                          side: const BorderSide(color: Colors.black),
-                          checkColor: Colors.white,
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                          MaterialTapTargetSize.shrinkWrap,
-                          onChanged: (val) => setState(() {
-                            if (val == true) {
-                              _selectedFeatures.add(item);
-                            } else {
-                              _selectedFeatures.remove(item);
-                            }
-                          }),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
-        ],
-      ),
-    );
-  }
 
   // ── Floating label text field ──────────────────────────────────────────────
   Widget _buildFloatingTextField({
