@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
@@ -187,11 +188,22 @@ class _CompareVehicleScreenState extends State<CompareVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
-      body: SafeArea(
-        child: Column(
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF2F2F2),
+        body: Column(
           children: [
+            Container(
+              width: double.infinity,
+              height: statusBarHeight,
+              color: Colors.white,
+            ),
             _buildAppBar(context),
             Expanded(
               child: SingleChildScrollView(

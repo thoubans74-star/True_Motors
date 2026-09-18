@@ -312,6 +312,9 @@ class ProfileUpdateProvider with ChangeNotifier {
         if (_profile.imageUrl.isEmpty && prevImageUrl.isNotEmpty) {
           _profile = _profile.copyWith(imageUrl: prevImageUrl);
         }
+        if (_profile.mobile.isEmpty && mobile.isNotEmpty) {
+          _profile = _profile.copyWith(mobile: mobile);
+        }
 
         await _saveProfileToPrefs(_profile);
         _isLoading = false;
@@ -336,8 +339,10 @@ class ProfileUpdateProvider with ChangeNotifier {
   Future<void> _saveProfileToPrefs(ProfileModel p) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('name', p.name);
-    await prefs.setString('phone', p.mobile);
-    await prefs.setString('mobile', p.mobile);
+    if (p.mobile.isNotEmpty) {
+      await prefs.setString('phone', p.mobile);
+      await prefs.setString('mobile', p.mobile);
+    }
     await prefs.setString('email', p.email);
     await prefs.setString('block', p.block);
     await prefs.setString('street_name', p.street);

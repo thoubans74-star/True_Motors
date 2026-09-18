@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:true_motors/provider/common_dropdown_provider.dart';
+
 import 'seller_information_screen.dart';
-import 'terms_and_conditions_screen.dart';
 
 class SellCarPhotoScreen extends StatefulWidget {
   final String registrationNumber;
@@ -15,13 +16,28 @@ class SellCarPhotoScreen extends StatefulWidget {
   final String model;
   final String fuelType;
   final String transmission;
-  final String regYear;
+  final String? category;
+  final String mfgYear;
   final String kmDriven;
   final String location;
   final String rto;
+  final String regYear;
+  final String owner;
+  final String color;
+  final String? currentLocation;
+  final String? vehicleLocation;
+  final String? listingId;
+  final String condition;
+  final String? conditionLabel;
   final String price;
+  final bool isNegotiable;
+  final bool accidentHistory;
+  final bool serviceHistory;
+  final bool insuranceAvailable;
   final String insuranceDate;
-  final List<String> features;
+  final bool pucAvailable;
+  final String pucDate;
+  final List<String>? initialFeatures;
 
   const SellCarPhotoScreen({
     super.key,
@@ -31,13 +47,28 @@ class SellCarPhotoScreen extends StatefulWidget {
     required this.model,
     required this.fuelType,
     required this.transmission,
-    required this.regYear,
+    this.category,
+    required this.mfgYear,
     required this.kmDriven,
     required this.location,
     required this.rto,
+    required this.regYear,
+    required this.owner,
+    required this.color,
+    this.currentLocation,
+    this.vehicleLocation,
+    this.listingId,
+    required this.condition,
+    this.conditionLabel,
     required this.price,
+    required this.isNegotiable,
+    required this.accidentHistory,
+    required this.serviceHistory,
+    required this.insuranceAvailable,
     required this.insuranceDate,
-    required this.features,
+    required this.pucAvailable,
+    required this.pucDate,
+    this.initialFeatures,
   });
 
   @override
@@ -47,18 +78,28 @@ class SellCarPhotoScreen extends StatefulWidget {
 class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _selectedImages = [];
-  final TextEditingController _priceController = TextEditingController();
-  bool _isNegotiable = true;
-
-  // Validation
   String? _photoError;
+
+  // ── Selected Features ──────────────────────────────────────────────────────
+  final List<String> _selectedFeatures = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialFeatures != null) {
+      _selectedFeatures.addAll(widget.initialFeatures!);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CommonDropdownProvider>().fetchFeatures();
+    });
+  }
 
   // ── Image picking ─────────────────────────────────────────────────────────
 
   Future<void> _openCamera() async {
     try {
       final XFile? photo =
-      await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+          await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
       if (photo != null) {
         setState(() {
           _selectedImages.add(File(photo.path));
@@ -73,7 +114,7 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
   Future<void> _openGallery() async {
     try {
       final List<XFile> photos =
-      await _picker.pickMultiImage(imageQuality: 85);
+          await _picker.pickMultiImage(imageQuality: 85);
       if (photos.isNotEmpty) {
         setState(() {
           _selectedImages.addAll(photos.map((p) => File(p.path)));
@@ -111,12 +152,79 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
     setState(() => _selectedImages.removeAt(index));
   }
 
+  void _showImagePickerModal() {
+    showModalBottomSheet(
+      backgroundColor: Colors.white,
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDDDDD),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Add Vehicle Photos',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFE8F5E9),
+                  child: Icon(Icons.camera_alt, color: Color(0xFF005F65)),
+                ),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openCamera();
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFE3F2FD),
+                  child: Icon(Icons.photo_library, color: Color(0xFF1565C0)),
+                ),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openGallery();
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFFFF3E0),
+                  child: Icon(Icons.folder, color: Color(0xFFE65100)),
+                ),
+                title: const Text('Files'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openFilePicker();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Validation & navigation ───────────────────────────────────────────────
 
   bool _validate() {
     setState(() {
       _photoError =
-      _selectedImages.isEmpty ? 'Please add at least one photo' : null;
+          _selectedImages.isEmpty ? 'Please add at least one photo' : null;
     });
     return _photoError == null;
   }
@@ -133,16 +241,25 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
             model: widget.model,
             fuelType: widget.fuelType,
             transmission: widget.transmission,
+            category: widget.category,
+            mfgYear: widget.mfgYear,
             regYear: widget.regYear,
             kmDriven: widget.kmDriven,
             location: widget.location,
             rto: widget.rto,
-            price: _priceController.text.trim(),
+            price: widget.price,
             insuranceDate: widget.insuranceDate,
-            features: widget.features,
+            features: _selectedFeatures,
             images: _selectedImages,
             allowTestDrive: false,
             additionalInfo: '',
+            currentLocation: widget.vehicleLocation ?? widget.currentLocation,
+            vehicleLocation: widget.vehicleLocation ?? widget.currentLocation,
+            listingId: widget.listingId,
+            condition: widget.condition,
+            conditionLabel: widget.conditionLabel,
+            isNegotiable: widget.isNegotiable,
+            pucDate: widget.pucDate,
           ),
         ),
       );
@@ -150,19 +267,16 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
   }
 
   @override
-  void dispose() {
-    _priceController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).padding.top;
+    final commonDropdownProvider = context.watch<CommonDropdownProvider>();
+    final featuresList = commonDropdownProvider.featureNames;
+    final isFeaturesLoading = commonDropdownProvider.isFeatureLoading;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.white,
         statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF3F3F3),
@@ -183,23 +297,12 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildPromoBanner(),
-                      SizedBox(height: 12.h),
-
-                      Text(
-                        'Photos & price',
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.w600),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        'Listings with 4+ photos and a clear price get more genuine enquiries.',
-                        style: TextStyle(
-                            fontSize: 12.sp, color: Colors.black54),
-                      ),
                       SizedBox(height: 16.h),
 
+                      // ── Registration badge ───────────────────────────────
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.w, vertical: 10.h),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF3F3F3),
                           border: Border.all(color: Colors.black),
@@ -207,23 +310,27 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                         ),
                         child: Text(
                           widget.registrationNumber,
-                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontSize: 14.sp, fontWeight: FontWeight.w500),
                         ),
                       ),
                       SizedBox(height: 20.h),
 
+                      // ── Vehicle Photos ───────────────────────────────────
                       Text(
                         'Vehicle photos',
-                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 15.sp, fontWeight: FontWeight.w600),
                       ),
                       SizedBox(height: 4.h),
                       Text(
                         'Up to 5MB per image · JPG or PNG',
-                        style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+                        style:
+                            TextStyle(fontSize: 12.sp, color: Colors.black54),
                       ),
                       SizedBox(height: 12.h),
 
-                      // ── Dashed upload box (always visible) ────────────────
+                      // Dashed upload box
                       _buildDashedUploadBox(),
 
                       if (_photoError != null)
@@ -238,14 +345,14 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
 
                       SizedBox(height: 14.h),
 
-                      // ── Selected images (shown below the box) ─────────────
+                      // Selected images preview
                       if (_selectedImages.isNotEmpty) _buildImageGrid(),
 
                       SizedBox(height: 12.h),
 
-                      // ── Add more images ───────────────────────────────────
+                      // Add more images button
                       GestureDetector(
-                        onTap: _openGallery,
+                        onTap: _showImagePickerModal,
                         child: Text(
                           '+ Add More photo',
                           style: TextStyle(
@@ -256,106 +363,126 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 24.h),
+                      SizedBox(height: 28.h),
 
-                      // ── Price ─────────────────────────────────────────────
+                      // ── Vehicle Features ─────────────────────────────────
                       Text(
-                        'Price',
-                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                        'Features',
+                        style: TextStyle(
+                            fontSize: 16.sp, fontWeight: FontWeight.w600),
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Expected selling price',
-                        style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+                        'Buyers filter by this before anything else — be accurate, it protects you at handover too.',
+                        style:
+                            TextStyle(fontSize: 12.sp, color: Colors.black54),
                       ),
-                      SizedBox(height: 8.h),
-                      TextField(
-                        controller: _priceController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        style: TextStyle(fontSize: 14.sp),
-                        decoration: InputDecoration(
-                          hintText: 'e.g.698000',
-                          hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.all(12.w),
-                            child: Text(
-                              '₹',
-                              style: TextStyle(fontSize: 16.sp, color: const Color(0xFF005F65), fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(color: Color(0xFFE2E2E2)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: const BorderSide(color: Color(0xFF005F65)),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
+                      SizedBox(height: 20.h),
 
-                      // ── Price negotiable? ─────────────────────────────────
                       Text(
-                        'Price negotiable?',
-                        style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                        'Feature Checklist',
+                        style: TextStyle(
+                            fontSize: 14.sp, fontWeight: FontWeight.w500),
                       ),
                       SizedBox(height: 12.h),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => setState(() => _isNegotiable = true),
-                            child: Container(
-                              width: 70.w,
-                              height: 36.h,
-                              decoration: BoxDecoration(
-                                color: _isNegotiable ? const Color(0xFF742B88) : Colors.white,
-                                border: Border.all(
-                                    color: _isNegotiable
-                                        ? const Color(0xFF742B88)
-                                        : const Color(0xFFE2E2E2)),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'Yes',
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: _isNegotiable ? Colors.white : Colors.black,
+                      if (isFeaturesLoading && featuresList.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.h),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 16.r,
+                                height: 16.r,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF005F65),
                                 ),
                               ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _isNegotiable = false),
-                            child: Container(
-                              width: 70.w,
-                              height: 36.h,
-                              decoration: BoxDecoration(
-                                color: !_isNegotiable ? const Color(0xFF742B88) : Colors.white,
-                                border: Border.all(
-                                    color: !_isNegotiable
-                                        ? const Color(0xFF742B88)
-                                        : const Color(0xFFE2E2E2)),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                'No',
+                              SizedBox(width: 8.w),
+                              Text(
+                                'Loading features...',
                                 style: TextStyle(
                                   fontSize: 13.sp,
-                                  color: !_isNegotiable ? Colors.white : Colors.black,
+                                  color: Colors.black54,
                                 ),
                               ),
+                            ],
+                          ),
+                        )
+                      else if (featuresList.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.h),
+                          child: Text(
+                            'No features available',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: Colors.black54,
                             ),
                           ),
-                        ],
-                      ),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8.w,
+                          runSpacing: 12.h,
+                          children: featuresList.map((f) {
+                            final isSelected = _selectedFeatures.contains(f);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedFeatures.remove(f);
+                                  } else {
+                                    _selectedFeatures.add(f);
+                                  }
+                                });
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 14.w, vertical: 8.h),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFE8F3F1)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF005F65)
+                                        : const Color(0xFFE2E2E2),
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      f,
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                        color: isSelected
+                                            ? const Color(0xFF005F65)
+                                            : Colors.black,
+                                      ),
+                                    ),
+                                    if (isSelected) ...[
+                                      SizedBox(width: 6.w),
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 15.r,
+                                        color: const Color(0xFF005F65),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       SizedBox(height: 40.h),
 
+                      // ── Save & Next Button ───────────────────────────────
                       Center(
                         child: SizedBox(
                           width: 230.w,
@@ -369,7 +496,7 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                               elevation: 0,
                             ),
                             child: Text(
-                              'Submit',
+                              'Save & Next',
                               style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -378,7 +505,7 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 24.h),
                     ],
                   ),
                 ),
@@ -433,8 +560,7 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
           ),
           Expanded(
             child: Padding(
-              padding:
-              EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -517,22 +643,18 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon
-            Icon(Icons.add_photo_alternate_outlined, size: 48.r, color: Colors.black87),
+            Icon(Icons.add_photo_alternate_outlined,
+                size: 48.r, color: Colors.black87),
             SizedBox(height: 12.h),
-
-            // Max size label
             Text(
               'Maximum 5 MB file size',
               style: TextStyle(fontSize: 14.sp, color: Colors.black),
             ),
             SizedBox(height: 16.h),
-
-            // Upload Image button
             SizedBox(
               width: 140.w,
               child: ElevatedButton(
-                onPressed: _openGallery,
+                onPressed: _showImagePickerModal,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF742B88),
                   foregroundColor: Colors.white,
@@ -553,12 +675,10 @@ class _SellCarPhotoScreenState extends State<SellCarPhotoScreen> {
     );
   }
 
-  // ── Selected images shown below the dashed box ────────────────────────────
   Widget _buildImageGrid() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Horizontal scrollable thumbnails
         SizedBox(
           height: 90.h,
           child: ListView.builder(
@@ -661,6 +781,6 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(_DashedBorderPainter old) =>
       old.color != color ||
-          old.dashWidth != dashWidth ||
-          old.dashSpace != dashSpace;
+      old.dashWidth != dashWidth ||
+      old.dashSpace != dashSpace;
 }

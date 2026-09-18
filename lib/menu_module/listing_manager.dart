@@ -8,6 +8,8 @@ class VehicleListing {
   String model;
   String fuelType;
   String transmission;
+  String? category;
+  String? mfgYear;
   String regYear;
   String kmDriven;
   String location;
@@ -21,6 +23,11 @@ class VehicleListing {
   String registrationNumber;
   String vehicleType;
   String status; // 'active', 'pending', 'sold'
+  String? currentLocation;
+  String? condition;
+  String? conditionLabel;
+  bool? isNegotiable;
+  String? pucDate;
 
   VehicleListing({
     required this.id,
@@ -28,6 +35,8 @@ class VehicleListing {
     required this.model,
     required this.fuelType,
     required this.transmission,
+    this.category,
+    this.mfgYear,
     required this.regYear,
     required this.kmDriven,
     required this.location,
@@ -41,6 +50,11 @@ class VehicleListing {
     required this.registrationNumber,
     required this.vehicleType,
     this.status = 'pending',
+    this.currentLocation,
+    this.condition,
+    this.conditionLabel,
+    this.isNegotiable,
+    this.pucDate,
   });
 
   VehicleListing copyWith({
@@ -48,6 +62,8 @@ class VehicleListing {
     String? model,
     String? fuelType,
     String? transmission,
+    String? category,
+    String? mfgYear,
     String? regYear,
     String? kmDriven,
     String? location,
@@ -61,13 +77,18 @@ class VehicleListing {
     String? registrationNumber,
     String? vehicleType,
     String? status,
+    String? currentLocation,
+    String? condition,
+    String? conditionLabel,
   }) {
     return VehicleListing(
-      id: this.id,
+      id: id,
       brand: brand ?? this.brand,
       model: model ?? this.model,
       fuelType: fuelType ?? this.fuelType,
       transmission: transmission ?? this.transmission,
+      category: category ?? this.category,
+      mfgYear: mfgYear ?? this.mfgYear,
       regYear: regYear ?? this.regYear,
       kmDriven: kmDriven ?? this.kmDriven,
       location: location ?? this.location,
@@ -81,6 +102,9 @@ class VehicleListing {
       registrationNumber: registrationNumber ?? this.registrationNumber,
       vehicleType: vehicleType ?? this.vehicleType,
       status: status ?? this.status,
+      currentLocation: currentLocation ?? this.currentLocation,
+      condition: condition ?? this.condition,
+      conditionLabel: conditionLabel ?? this.conditionLabel,
     );
   }
 }

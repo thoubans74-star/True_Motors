@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
@@ -18,6 +19,16 @@ class UsedVehicleScreen extends StatefulWidget {
 
 class _UsedVehicleScreenState extends State<UsedVehicleScreen> {
   final int _selectedNavIndex = 1;
+  int _currentBannerIndex = 0;
+  Timer? _bannerTimer;
+
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<String> _bannerImages = [
+    'assets/used_vehicle/banner1.png',
+    'assets/used_vehicle/banner2.png',
+    'assets/used_vehicle/banner3.png',
+  ];
 
   final List<Map<String, dynamic>> electricVehicles = [
     {'label': 'e-Car', 'image': 'assets/buy_image/ecar.png'},
@@ -46,10 +57,21 @@ class _UsedVehicleScreenState extends State<UsedVehicleScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsedVehicleProvider>().fetchUsedVehicleCategories();
     });
+
+    _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentBannerIndex =
+              (_currentBannerIndex + 1) % _bannerImages.length;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -79,11 +101,22 @@ class _UsedVehicleScreenState extends State<UsedVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        body: Column(
           children: [
+            Container(
+              width: double.infinity,
+              height: statusBarHeight,
+              color: Colors.white,
+            ),
             _buildAppBar(context),
             Expanded(
               child: SingleChildScrollView(
@@ -93,13 +126,13 @@ class _UsedVehicleScreenState extends State<UsedVehicleScreen> {
                     const SizedBox(height: 8),
                     _buildSearchBar(),
                     _buildSectionTitle('Lets find your vehicle'),
-                    SizedBox(height: 8,),
+                    const SizedBox(height: 8),
                     _buildVehicleGrid(),
-                    SizedBox(height: 8,),
-                    Divider(color: Color(0xFFD4D4D4),),
+                    const SizedBox(height: 8),
+                    const Divider(color: Color(0xFFD4D4D4)),
                     _buildElectricSection(),
                     _buildRentBanner(),
-                    SizedBox(height: 8,),
+                    const SizedBox(height: 8),
                     _buildTrendingCarsSection(),
                     const SizedBox(height: 25),
                   ],

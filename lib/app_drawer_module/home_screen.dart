@@ -490,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SizedBox(
-          height: 200.h,
+          height: 230.h,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -515,7 +515,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -540,11 +539,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           SizedBox(height: 4.h),
-          Center(
-            child: Image.asset(
-              car['image'],
-              height: 65.h,
-              fit: BoxFit.contain,
+          Expanded(
+            child: Center(
+              child: Image.asset(
+                car['image'],
+                height: 65.h,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           SizedBox(height: 4.h),
@@ -656,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SizedBox(
-          height: 200.h,
+          height: 230.h,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),

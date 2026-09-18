@@ -38,7 +38,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedPhone = prefs.getString('phone') ?? prefs.getString('mobile') ?? '';
+    final storedPhone = prefs.getString('login_mobile') ?? prefs.getString('phone') ?? prefs.getString('mobile') ?? '';
     final storedName = prefs.getString('name') ?? '';
     final storedEmail = prefs.getString('email') ?? '';
 
@@ -61,7 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (success && mounted) {
       final p = provider.profile;
       if (p.name.isNotEmpty) nameController.text = p.name;
-      if (p.mobile.isNotEmpty) phoneController.text = p.mobile;
+      if (phoneController.text.isEmpty && p.mobile.isNotEmpty) phoneController.text = p.mobile;
       if (p.email.isNotEmpty) emailController.text = p.email;
     }
   }
@@ -194,12 +194,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(height: 20.h),
                   TextFormField(
                     controller: phoneController,
-                    keyboardType: TextInputType.phone,
-                    style: TextStyle(fontSize: 15.sp),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
+                    readOnly: true,
+                    enableInteractiveSelection: false,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      color: const Color(0xFF555555),
+                      fontWeight: FontWeight.w500,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Enter Mobile Number',
                       hintStyle: TextStyle(
@@ -208,34 +209,30 @@ class _SignupScreenState extends State<SignupScreen> {
                         fontFamily: 'Lato',
                         color: const Color(0xFF7C7C7C),
                       ),
+                      fillColor: const Color(0xFFF7F7F7),
+                      filled: true,
+                      suffixIcon: const Icon(
+                        Icons.lock_outline,
+                        size: 20,
+                        color: Color(0xFF888888),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
-                        borderSide: const BorderSide(color: Color(0xFF817979)),
+                        borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.r),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF005F65),
-                          width: 1.5,
-                        ),
+                        borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
                       ),
                       contentPadding: EdgeInsets.symmetric(
                         vertical: 12.h,
                         horizontal: 12.w,
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter mobile number';
-                      }
-                      if (value.trim().length != 10) {
-                        return 'Mobile number must be 10 digits';
-                      }
-                      return null;
-                    },
                   ),
 
                   SizedBox(height: 20.h),

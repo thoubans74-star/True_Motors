@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'package:provider/provider.dart';
+import 'package:true_motors/app_drawer_module/home_screen.dart';
+import 'package:true_motors/provider/common_dropdown_provider.dart';
+import 'package:true_motors/provider/seller_insert_step_provider.dart';
 import 'package:true_motors/menu_module/listing_manager.dart';
 
 class SellerInformationScreen extends StatefulWidget {
@@ -13,6 +17,8 @@ class SellerInformationScreen extends StatefulWidget {
   final String model;
   final String fuelType;
   final String transmission;
+  final String? category;
+  final String? mfgYear;
   final String regYear;
   final String kmDriven;
   final String location;
@@ -23,6 +29,13 @@ class SellerInformationScreen extends StatefulWidget {
   final List<File> images;
   final bool allowTestDrive;
   final String additionalInfo;
+  final String? currentLocation;
+  final String? vehicleLocation;
+  final String? listingId;
+  final String? condition;
+  final String? conditionLabel;
+  final bool? isNegotiable;
+  final String? pucDate;
 
   const SellerInformationScreen({
     super.key,
@@ -32,6 +45,8 @@ class SellerInformationScreen extends StatefulWidget {
     required this.model,
     required this.fuelType,
     required this.transmission,
+    this.category,
+    this.mfgYear,
     required this.regYear,
     required this.kmDriven,
     required this.location,
@@ -42,6 +57,13 @@ class SellerInformationScreen extends StatefulWidget {
     required this.images,
     required this.allowTestDrive,
     required this.additionalInfo,
+    this.currentLocation,
+    this.vehicleLocation,
+    this.listingId,
+    this.condition,
+    this.conditionLabel,
+    this.isNegotiable,
+    this.pucDate,
   });
 
   @override
@@ -52,20 +74,21 @@ class SellerInformationScreen extends StatefulWidget {
 class _SellerInformationScreenState extends State<SellerInformationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController();
   final TextEditingController _additionalInfoController =
   TextEditingController();
+
+  // Status: '1' = Available, '0' = Not Available
+  String _status = '1';
 
   // Validation errors
   String? _nameError;
   String? _contactError;
-  String? _cityError;
+  bool _isSubmittingStep4 = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _contactController.dispose();
-    _cityController.dispose();
     _additionalInfoController.dispose();
     super.dispose();
   }
@@ -95,53 +118,139 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
       } else {
         _contactError = null;
       }
-
-      // City
-      if (_cityController.text.trim().isEmpty) {
-        _cityError = 'Please enter your city';
-        valid = false;
-      } else {
-        _cityError = null;
-      }
     });
     return valid;
   }
 
-  void _onSubmit() {
-    if (_validate()) {
-      // Save listing to pending in ListingManager
-      final listing = VehicleListing(
-        id: ListingManager().generateId(),
-        brand: widget.brand,
-        model: widget.model,
-        fuelType: widget.fuelType,
-        transmission: widget.transmission,
-        regYear: widget.regYear,
-        kmDriven: widget.kmDriven,
-        location: widget.location,
-        rto: widget.rto,
-        price: widget.price,
-        insuranceDate: widget.insuranceDate,
-        features: widget.features,
-        images: widget.images,
-        allowTestDrive: widget.allowTestDrive,
-        additionalInfo: widget.additionalInfo,
-        registrationNumber: widget.registrationNumber,
-        vehicleType: widget.vehicleType,
-        status: 'pending',
-      );
-      ListingManager().addListing(listing);
-      _showSuccessDialog();
-    } else {
+  Future<void> _onSubmit() async {
+    if (!_validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required fields correctly'),
         ),
       );
+      return;
+    }
+
+    if (_isSubmittingStep4) return;
+    setState(() => _isSubmittingStep4 = true);
+
+    try {
+      final stepProvider = context.read<SellerInsertStepProvider>();
+      final commonProvider = context.read<CommonDropdownProvider>();
+      final activeListingId = widget.listingId ?? stepProvider.currentListingId;
+
+      // Map feature names to feature IDs from commonProvider.featureItems
+      final List<String> featureIds = [];
+      for (final fName in widget.features) {
+        final match = commonProvider.featureItems.where(
+          (item) =>
+              item.name.toLowerCase() == fName.toLowerCase() ||
+              (item.featureName != null &&
+                  item.featureName!.toLowerCase() == fName.toLowerCase()),
+        ).firstOrNull;
+        if (match != null) {
+          featureIds.add(match.id.toString());
+        } else {
+          final parsed = int.tryParse(fName);
+          if (parsed != null) {
+            featureIds.add(fName);
+          }
+        }
+      }
+
+      Step4Response? step4Res;
+      if (activeListingId != null && activeListingId.isNotEmpty) {
+        step4Res = await stepProvider.submitStep4(
+          listingId: activeListingId,
+          status: _status,
+          features: featureIds,
+          sellerName: _nameController.text.trim(),
+          contactNumber: _contactController.text.trim(),
+          additionalInfo: _additionalInfoController.text.trim().isNotEmpty
+              ? _additionalInfoController.text.trim()
+              : widget.additionalInfo,
+          vehicleImages: widget.images,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() => _isSubmittingStep4 = false);
+
+      if (step4Res != null || activeListingId == null) {
+        // Save listing to pending in ListingManager
+        final listing = VehicleListing(
+          id: activeListingId ?? ListingManager().generateId(),
+          brand: widget.brand,
+          model: widget.model,
+          fuelType: widget.fuelType,
+          transmission: widget.transmission,
+          category: widget.category,
+          mfgYear: widget.mfgYear,
+          regYear: widget.regYear,
+          kmDriven: widget.kmDriven,
+          location: widget.location,
+          rto: widget.rto,
+          price: widget.price,
+          insuranceDate: widget.insuranceDate,
+          features: widget.features,
+          images: widget.images,
+          allowTestDrive: widget.allowTestDrive,
+          additionalInfo: _additionalInfoController.text.trim().isNotEmpty
+              ? _additionalInfoController.text.trim()
+              : widget.additionalInfo,
+          registrationNumber: widget.registrationNumber,
+          vehicleType: widget.vehicleType,
+          status: 'pending',
+          currentLocation: widget.vehicleLocation ?? widget.currentLocation,
+          condition: widget.condition,
+          conditionLabel: widget.conditionLabel,
+          isNegotiable: widget.isNegotiable,
+          pucDate: widget.pucDate,
+        );
+        ListingManager().addListing(listing);
+        _showSuccessDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(stepProvider.step4Error ??
+                'Failed to submit listing. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmittingStep4 = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
+  bool _hasNavigatedToStep1 = false;
+
+  void _navigateToStep1() {
+    if (_hasNavigatedToStep1) return;
+    _hasNavigatedToStep1 = true;
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.of(context, rootNavigator: true).pop(); // close dialog
+    }
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 2)),
+      (route) => false,
+    );
+  }
+
   void _showSuccessDialog() {
+    // Reset provider draft state
+    context.read<SellerInsertStepProvider>().reset();
+    _hasNavigatedToStep1 = false;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -151,7 +260,21 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 16.h),
+            SizedBox(height: 10.h),
+            Container(
+              width: 56.r,
+              height: 56.r,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8F5E9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: const Color(0xFF2E7D32),
+                size: 38.r,
+              ),
+            ),
+            SizedBox(height: 14.h),
             Text(
               'Vehicle Listed Successfully!',
               textAlign: TextAlign.center,
@@ -164,37 +287,53 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
             Text(
               'Your ${widget.vehicleType} (${widget.registrationNumber}) has been listed. Our team will contact you shortly.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.5.sp, color: Colors.black),
+              style: TextStyle(fontSize: 13.5.sp, color: Colors.black87),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Moving to Sell Car...',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
         actions: [
           Center(
             child: SizedBox(
-              width: 150.w,
-              height: 44.h,
+              width: 140.w,
+              height: 40.h,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // close dialog
-                  Navigator.popUntil(
-                      context, (route) => route.isFirst); // go to home
-                },
+                onPressed: _navigateToStep1,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF005F65),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r)),
+                      borderRadius: BorderRadius.circular(8.r)),
                 ),
-                child: Text('Go to Home',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700)),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+
+    // Automatically move to Step 1 screen after 1.8 seconds
+    Future.delayed(const Duration(milliseconds: 1800), () {
+      if (mounted && !_hasNavigatedToStep1) {
+        _navigateToStep1();
+      }
+    });
   }
 
   @override
@@ -264,14 +403,94 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
                         onChanged: (_) => setState(() => _contactError = null),
                       ),
 
-                      // ── City ──────────────────────────────────────────────
-                      _buildSectionLabel('City'),
-                      _buildTextField(
-                        controller: _cityController,
-                        hint: 'Enter your city',
-                        error: _cityError,
-                        keyboardType: TextInputType.text,
-                        onChanged: (_) => setState(() => _cityError = null),
+                      // ── Status ────────────────────────────────────────────
+                      _buildSectionLabel('Status'),
+                      Container(
+                        margin: EdgeInsets.only(bottom: 14.h),
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: const Color(0xFFE2E2E2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setState(() => _status = '1'),
+                                borderRadius: BorderRadius.circular(6.r),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 20.r,
+                                      height: 20.r,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: _status == '1'
+                                              ? const Color(0xFF005F65)
+                                              : const Color(0xFFB4B4B4),
+                                          width: _status == '1' ? 6.r : 1.5.r,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      'Available',
+                                      style: TextStyle(
+                                        fontSize: 13.5.sp,
+                                        fontWeight: _status == '1'
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: _status == '1'
+                                            ? const Color(0xFF005F65)
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setState(() => _status = '0'),
+                                borderRadius: BorderRadius.circular(6.r),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 20.r,
+                                      height: 20.r,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: _status == '0'
+                                              ? const Color(0xFF005F65)
+                                              : const Color(0xFFB4B4B4),
+                                          width: _status == '0' ? 6.r : 1.5.r,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      'Not Available',
+                                      style: TextStyle(
+                                        fontSize: 13.5.sp,
+                                        fontWeight: _status == '0'
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: _status == '0'
+                                            ? const Color(0xFF005F65)
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
 
                       // ── Additional Info (Optional) ────────────────────────
@@ -332,7 +551,7 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
                           SizedBox(width: 12.w),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _onSubmit,
+                              onPressed: _isSubmittingStep4 ? null : _onSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF005F65),
                                 padding:
@@ -340,13 +559,22 @@ class _SellerInformationScreenState extends State<SellerInformationScreen> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10.r)),
                               ),
-                              child: Text(
-                                'Submit',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15.sp),
-                              ),
+                              child: _isSubmittingStep4
+                                  ? SizedBox(
+                                      width: 22.r,
+                                      height: 22.r,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Submit',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15.sp),
+                                    ),
                             ),
                           ),
                         ],

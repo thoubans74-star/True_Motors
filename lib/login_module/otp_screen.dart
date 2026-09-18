@@ -99,9 +99,12 @@ class _OtpScreenState extends State<OtpScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', response.userId);
         await prefs.setString('token', response.fToken);
-        await prefs.setString('phone', response.mobile);
+        final loginPhone = response.mobile.isNotEmpty ? response.mobile : widget.mobile;
+        await prefs.setString('phone', loginPhone);
+        await prefs.setString('mobile', loginPhone);
+        await prefs.setString('login_mobile', loginPhone);
         
-        // Success — navigate based on profile completion status
+        if (!mounted) return;
         if (response.isProfileComplete) {
           Navigator.pushReplacement(
             context,

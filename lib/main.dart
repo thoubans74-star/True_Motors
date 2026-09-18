@@ -7,14 +7,24 @@ import 'package:true_motors/provider/profile_update_provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
 import 'package:true_motors/provider/subscription_provider.dart';
 import 'package:true_motors/provider/terms_provider.dart';
+import 'package:true_motors/provider/sell_vehicle_provider.dart';
+import 'package:true_motors/provider/common_dropdown_provider.dart';
+import 'package:true_motors/provider/rto_location_provider.dart';
+import 'package:true_motors/provider/seller_insert_step_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.bottom]);
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+  );
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.white,
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
   runApp(
@@ -24,6 +34,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => ProfileUpdateProvider()),
         ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
         ChangeNotifierProvider(create: (_) => TermsProvider()),
+        ChangeNotifierProvider(create: (_) => SellVehicleProvider()),
+        ChangeNotifierProvider(create: (_) => CommonDropdownProvider()),
+        ChangeNotifierProvider(create: (_) => RtoLocationProvider()),
+        ChangeNotifierProvider(create: (_) => SellerInsertStepProvider()),
       ],
       child: const MyApp(),
     ),

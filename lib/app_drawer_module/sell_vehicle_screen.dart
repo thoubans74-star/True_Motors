@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:true_motors/provider/used_vehicle_provider.dart';
+import 'package:true_motors/provider/seller_insert_step_provider.dart';
 import 'package:true_motors/sell_vehicle_module/sell_car_form_screen.dart';
-
-import 'used_vehicle_screen.dart';
-import 'compare_vehicle_screen.dart';
 
 class SellVehicleScreen extends StatefulWidget {
   const SellVehicleScreen({super.key});
@@ -15,19 +14,26 @@ class SellVehicleScreen extends StatefulWidget {
 }
 
 class _SellVehicleScreenState extends State<SellVehicleScreen> {
-  final int _selectedNavIndex = 2;
-
-  UsedVehicleCategory? _selectedCategory;
   final TextEditingController _regController = TextEditingController();
   final FocusNode _regFocusNode = FocusNode();
   String? _regError;
+  bool _isSubmittingStep1 = false;
 
   @override
   void initState() {
     super.initState();
+    _regController.addListener(_onRegChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsedVehicleProvider>().fetchUsedVehicleCategories();
     });
+  }
+
+  void _onRegChanged() {
+    if (mounted) {
+      setState(() {
+        if (_regError != null) _regError = null;
+      });
+    }
   }
 
   final List<Map<String, dynamic>> _trendingCars = [
@@ -96,105 +102,187 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
   ];
   final List<bool> _faqExpanded = [false, false, false, false];
 
-  /// Returns the registration label based on selected vehicle type
-  String get _registrationLabel {
-    final catName = _selectedCategory?.catName.toLowerCase();
-    switch (catName) {
-      case 'bike':
-        return 'Enter Your Bike Registration Number';
-      case 'scooty':
-        return 'Enter Your Scooty Registration Number';
-      case 'commercial vehicle':
-        return 'Enter Your Commercial Vehicle Registration Number';
-      case 'tractor':
-        return 'Enter Your Tractor Registration Number';
-      default:
-        return 'Enter Your Car Registration Number';
-    }
-  }
-
-  /// Returns hint text based on vehicle type
-  String get _registrationHint {
-    final catName = _selectedCategory?.catName.toLowerCase();
-    switch (catName) {
-      case 'bike':
-      case 'scooty':
-        return 'TN 42 A 4872';
-      case 'commercial vehicle':
-        return 'TN 09 C 1234';
-      case 'tractor':
-        return 'TN 57 T 5678';
-      default:
-        return 'TN 42 A 4872';
-    }
-  }
-
-  /// Indian vehicle registration number regex validator
-  /// Supports formats: AA 00 AA 0000 or AA 00 A 0000
+  /// Indian vehicle registration number validator
+  /// Supports standard state format (e.g. TN 42 A 4872, TN 42 AB 1234) and Bharat series (e.g. 22 BH 1234 AA)
   bool _isValidRegistration(String value) {
-    final trimmed = value.trim().replaceAll(' ', '').toUpperCase();
-    // Standard Indian format: 2 letters + 2 digits + 1-3 letters + 4 digits
-    final regex = RegExp(r'^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4}$');
-    return regex.hasMatch(trimmed);
+    final trimmed = value.trim().replaceAll(' ', '').replaceAll('-', '').toUpperCase();
+    final standardRegex = RegExp(r'^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$');
+    final bhRegex = RegExp(r'^[0-9]{2}BH[0-9]{4}[A-Z]{1,2}$');
+    if (trimmed.length < 5) return false;
+    return standardRegex.hasMatch(trimmed) || bhRegex.hasMatch(trimmed);
+  }
+
+  _RegistrationParts _parseRegistration(String text) {
+    final clean = text.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    final bool isValid = _isValidRegistration(clean);
+
+    // Check Bharat (BH) series format: e.g. 22 BH 1234 AA
+    final bhRegex = RegExp(r'^([0-9]{0,2})(BH)?([0-9]{0,4})([A-Z]{0,2})$');
+    if (clean.length >= 2 && RegExp(r'^[0-9]{2}').hasMatch(clean)) {
+      final match = bhRegex.firstMatch(clean);
+      final yr = match?.group(1) ?? '';
+      final bh = match?.group(2) ?? '';
+      final num = match?.group(3) ?? '';
+      final ser = match?.group(4) ?? '';
+      return _RegistrationParts(
+        state: '$yr $bh'.trim(),
+        rto: '',
+        series: ser,
+        number: num,
+        currentStep: isValid ? 5 : 4,
+        hintText: isValid
+            ? '✓ Valid Bharat (BH) series: $yr BH $num $ser'.trim()
+            : 'BH Series: Enter remaining digits/letters',
+        isValid: isValid,
+      );
+    }
+
+    // Standard state series
+    String state = '';
+    String rto = '';
+    String series = '';
+    String number = '';
+
+    int i = 0;
+    // 1. State letters (up to 2 letters)
+    while (i < clean.length && RegExp(r'[A-Z]').hasMatch(clean[i]) && state.length < 2) {
+      state += clean[i];
+      i++;
+    }
+
+    // 2. RTO digits (up to 2 digits)
+    while (i < clean.length && RegExp(r'[0-9]').hasMatch(clean[i]) && rto.length < 2) {
+      rto += clean[i];
+      i++;
+    }
+
+    // 3. Series letters (up to 3 letters)
+    while (i < clean.length && RegExp(r'[A-Z]').hasMatch(clean[i]) && series.length < 3) {
+      series += clean[i];
+      i++;
+    }
+
+    // 4. Number digits (up to 4 digits)
+    while (i < clean.length && RegExp(r'[0-9]').hasMatch(clean[i]) && number.length < 4) {
+      number += clean[i];
+      i++;
+    }
+
+    int currentStep = 1;
+    String hintText = '';
+
+    if (state.isEmpty) {
+      currentStep = 1;
+      hintText = 'Enter 2-letter State code (e.g. TN, KA, MH, DL)';
+    } else if (state.length < 2) {
+      currentStep = 1;
+      hintText = 'State code: Enter 2nd letter (e.g. ${state}N)';
+    } else if (rto.isEmpty) {
+      currentStep = 2;
+      hintText = 'Next: Enter 2-digit RTO number (e.g. 42, 01)';
+    } else if (rto.length < 2 && i == clean.length) {
+      currentStep = 2;
+      hintText = 'Next: Enter 2nd digit of RTO or Series letter (e.g. A)';
+    } else if (series.isEmpty && number.isEmpty) {
+      currentStep = 3;
+      hintText = 'Next: Enter Series letter (e.g. A, AB)';
+    } else if (number.isEmpty) {
+      currentStep = 4;
+      hintText = 'Next: Enter 4-digit vehicle number (e.g. 4872)';
+    } else if (number.length < 4 && !isValid) {
+      currentStep = 4;
+      hintText = 'Vehicle number: Enter remaining digits (e.g. 4872)';
+    } else if (isValid) {
+      currentStep = 5;
+      final formatted = [
+        state,
+        rto,
+        if (series.isNotEmpty) series,
+        number,
+      ].join(' ');
+      hintText = '✓ Valid registration format: $formatted';
+    } else {
+      currentStep = 4;
+      hintText = 'Format: TN 42 A 4872 (State • RTO • Series • Number)';
+    }
+
+    return _RegistrationParts(
+      state: state,
+      rto: rto,
+      series: series,
+      number: number,
+      currentStep: currentStep,
+      hintText: hintText,
+      isValid: isValid,
+    );
   }
 
   void _onSellVehicle() {
-    // Validate vehicle selection
-    if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a vehicle type'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    final rawReg = _regController.text.trim();
+    if (rawReg.isEmpty) {
+      setState(() => _regError = 'Please enter your vehicle registration number');
       return;
     }
-
-    // Validate registration number
-    final reg = _regController.text.trim();
-    if (reg.isEmpty) {
-      setState(() => _regError = 'Please enter a registration number');
-      return;
-    }
-    if (!_isValidRegistration(reg)) {
-      setState(() => _regError = 'Enter a valid registration number (e.g. TN 42 A 4872)');
+    if (!_isValidRegistration(rawReg)) {
+      final parts = _parseRegistration(rawReg);
+      setState(() => _regError = parts.hintText.replaceFirst('💡 ', '').replaceFirst('✓ ', ''));
       return;
     }
 
     setState(() => _regError = null);
 
-    // Navigate to the sell car form with the registration number
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SellCarFormScreen(
-          registrationNumber: reg.trim().toUpperCase(),
-          vehicleType: _selectedCategory!.catName,
-          vehicleCategoryId: _selectedCategory!.id,
-        ),
-      ),
-    );
-  }
+    final parts = _parseRegistration(rawReg);
+    final formattedReg = [
+      parts.state,
+      parts.rto,
+      if (parts.series.isNotEmpty) parts.series,
+      parts.number,
+    ].where((p) => p.isNotEmpty).join(' ');
 
-  void _onNavTap(int index) {
-    if (index == _selectedNavIndex) return;
-    if (index == 0) {
-      Navigator.popUntil(context, (route) => route.isFirst);
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const UsedVehicleScreen()),
+    final finalReg = formattedReg.isNotEmpty ? formattedReg : rawReg.toUpperCase();
+
+    if (_isSubmittingStep1) return;
+    setState(() => _isSubmittingStep1 = true);
+
+    final stepProvider = context.read<SellerInsertStepProvider>();
+    stepProvider.submitStep1(vehicleNo: finalReg).then((result) {
+      if (!mounted) return;
+      setState(() => _isSubmittingStep1 = false);
+
+      if (result != null && result.listingId.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SellCarFormScreen(
+              registrationNumber: finalReg,
+              listingId: result.listingId,
+            ),
+          ),
+        );
+      } else {
+        final errorMsg = stepProvider.step1Error ?? 'Failed to initialize vehicle draft. Please try again.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }).catchError((e) {
+      if (!mounted) return;
+      setState(() => _isSubmittingStep1 = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-    } else if (index == 3) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const CompareVehicleScreen()),
-      );
-    }
+    });
   }
 
   @override
   void dispose() {
+    _regController.removeListener(_onRegChanged);
     _regController.dispose();
     _regFocusNode.dispose();
     super.dispose();
@@ -202,16 +290,27 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      // Dismiss keyboard on tap outside — keeps bottom nav fixed
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        // resizeToAvoidBottomInset: false keeps the bottom nav from moving up
-        resizeToAvoidBottomInset: false,
-        body: SafeArea(
-          child: Column(
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: GestureDetector(
+        // Dismiss keyboard on tap outside — keeps bottom nav fixed
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          // resizeToAvoidBottomInset: false keeps the bottom nav from moving up
+          resizeToAvoidBottomInset: false,
+          body: Column(
             children: [
+              Container(
+                width: double.infinity,
+                height: statusBarHeight,
+                color: Colors.white,
+              ),
               _buildAppBar(context),
               Expanded(
                 child: SingleChildScrollView(
@@ -343,139 +442,214 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
   }
 
   Widget _buildGetPriceForm() {
-    return Consumer<UsedVehicleProvider>(
-      builder: (context, provider, child) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFB5B4B4)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Get Your Vehicle Best Price Now',
-                  style: TextStyle(
-                      color: Color(0xFF003399),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18.5)),
-              const SizedBox(height: 12),
-              if (provider.isLoading)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator(color: Color(0xFF005F65)),
-                ))
-              else if (provider.error != null)
-                Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red))
-              else
-                _buildDropdown(
-                  'Select Vehicle',
-                  provider.categories,
-                  _selectedCategory,
-                      (val) => setState(() {
-                    _selectedCategory = val;
-                    _regController.clear();
-                    _regError = null;
-                  }),
-                ),
-              const SizedBox(height: 10),
+    final parts = _parseRegistration(_regController.text);
+    final isComplete = parts.isValid;
 
-              // Dynamic label based on vehicle type
-              if (_selectedCategory != null) ...[
-                Text(
-                  _registrationLabel,
-                  style: const TextStyle(
-                      fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFB5B4B4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Get Your Vehicle Best Price Now',
+            style: TextStyle(
+              color: Color(0xFF003399),
+              fontWeight: FontWeight.w700,
+              fontSize: 18.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Enter Your Vehicle Registration Number',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _regController,
+            focusNode: _regFocusNode,
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              _UpperCaseTextFormatter(),
+              LengthLimitingTextInputFormatter(13),
+            ],
+            decoration: InputDecoration(
+              prefixIcon: const Icon(
+                Icons.directions_car_outlined,
+                color: Color(0xFF005F65),
+                size: 20,
+              ),
+              suffixIcon: isComplete
+                  ? const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF2E7D32),
+                      size: 22,
+                    )
+                  : _regController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.cancel, color: Colors.grey, size: 20),
+                          onPressed: () {
+                            _regController.clear();
+                            setState(() => _regError = null);
+                          },
+                        )
+                      : null,
+              hintText: 'e.g. TN 42 A 4872',
+              hintStyle: const TextStyle(
+                color: Color(0xFF999999),
+                fontWeight: FontWeight.w500,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: _regError != null ? Colors.red : Colors.black,
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _regController,
-                  focusNode: _regFocusNode,
-                  textCapitalization: TextCapitalization.characters,
-                  onChanged: (_) {
-                    if (_regError != null) setState(() => _regError = null);
-                  },
-                  decoration: InputDecoration(
-                    hintText: _registrationHint,
-                    hintStyle: const TextStyle(
-                        color: Color(0xFF999999), fontWeight: FontWeight.w500),
-                    errorText: _regError,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                          color: _regError != null ? Colors.red : Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                          color: _regError != null ? Colors.red : Colors.black),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                          color: _regError != null ? Colors.red : const Color(0xFF005F65),
-                          width: 2),
-                    ),
-                    contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: _regError != null
+                      ? Colors.red
+                      : isComplete
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFB5B4B4),
+                  width: isComplete ? 1.5 : 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: _regError != null
+                      ? Colors.red
+                      : const Color(0xFF005F65),
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // ── Decent format guide and suggestion under textfield ───────
+          _buildFormatSuggestion(parts),
+          const SizedBox(height: 16),
+          Center(
+            child: SizedBox(
+              width: 160,
+              child: ElevatedButton(
+                onPressed: _isSubmittingStep1 ? null : _onSellVehicle,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF005F65),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ] else ...[
-                // Show static label before vehicle is selected
-                const Text(
-                  'Enter Your Vehicle Registration Number',
-                  style: TextStyle(
-                      fontSize: 14, color: Colors.black, fontWeight: FontWeight.w500),
+                child: _isSubmittingStep1
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Sell my vehicle',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormatSuggestion(_RegistrationParts parts) {
+    if (_regError != null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 2, top: 2),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, size: 14, color: Colors.red),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _regError!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  enabled: false,
-                  decoration: InputDecoration(
-                    hintText: 'Select a vehicle type first',
-                    hintStyle: const TextStyle(
-                        color: Color(0xFF999999), fontWeight: FontWeight.w500),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final isTyping = _regController.text.trim().isNotEmpty;
+    final isValid = parts.isValid;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, top: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isTyping) ...[
+            Row(
+              children: [
+                Icon(
+                  isValid ? Icons.check_circle : Icons.info_outline,
+                  size: 14,
+                  color: isValid ? const Color(0xFF2E7D32) : const Color(0xFF005F65),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    parts.hintText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isValid ? FontWeight.w600 : FontWeight.w500,
+                      color: isValid ? const Color(0xFF2E7D32) : const Color(0xFF005F65),
                     ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
                   ),
                 ),
               ],
-
-              const SizedBox(height: 16),
-              Center(
-                child: SizedBox(
-                  width: 160,
-                  child: ElevatedButton(
-                    onPressed: _onSellVehicle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF005F65),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Sell my vehicle',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16)),
+            ),
+            const SizedBox(height: 4),
+          ],
+          Row(
+            children: const [
+              Icon(Icons.lightbulb_outline, size: 13, color: Color(0xFF757575)),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Format: TN 42 A 4872  (State • RTO • Series • Number)',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF757575),
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -483,36 +657,46 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('or Select your car brand',
-                style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'or Select your car brand',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade800,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
+            ],
           ),
         ),
         Container(
-          height: 200,
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 30),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 4,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 4))
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 6,
+                spreadRadius: 0,
+                offset: const Offset(0, 2),
+              ),
             ],
           ),
           child: GridView.count(
             crossAxisCount: 5,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 15,
+            mainAxisSpacing: 12,
             crossAxisSpacing: 10,
             childAspectRatio: 1,
             children: _carBrands.map((brand) {
@@ -739,7 +923,7 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -881,90 +1065,37 @@ class _SellVehicleScreenState extends State<SellVehicleScreen> {
       ],
     );
   }
+}
 
-  Widget _buildDropdown(String hint, List<UsedVehicleCategory> items, UsedVehicleCategory? value,
-      ValueChanged<UsedVehicleCategory?> onChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<UsedVehicleCategory>(
-          iconEnabledColor: Colors.black,
-          dropdownColor: Colors.white,
-          isExpanded: true,
-          hint: Text(hint,
-              style: const TextStyle(
-                  color: Color(0xFF000000), fontWeight: FontWeight.w500)),
-          value: value,
-          items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e.catName)))
-              .toList(),
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
+class _RegistrationParts {
+  final String state;
+  final String rto;
+  final String series;
+  final String number;
+  final int currentStep;
+  final String hintText;
+  final bool isValid;
 
-  Widget _buildBottomNav() {
-    final items = [
-      {'image': 'assets/icons/home.png', 'label': 'Home'},
-      {'image': 'assets/icons/buy.png', 'label': 'Buy'},
-      {'image': 'assets/icons/sell.png', 'label': 'Sell'},
-      {'image': 'assets/icons/compare.png', 'label': 'Compare'},
-    ];
+  _RegistrationParts({
+    required this.state,
+    required this.rto,
+    required this.series,
+    required this.number,
+    required this.currentStep,
+    required this.hintText,
+    required this.isValid,
+  });
+}
 
-    return Container(
-      decoration: const BoxDecoration(color: Color(0xFF005F65)),
-      child: SafeArea(
-        child: SizedBox(
-          height: 65,
-          child: Row(
-            children: List.generate(items.length, (i) {
-              final isSelected = _selectedNavIndex == i;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => _onNavTap(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 4),
-                      Image.asset(
-                        items[i]['image'] as String,
-                        width: isSelected ? 28 : 24,
-                        height: isSelected ? 28 : 24,
-                        fit: BoxFit.contain,
-                        color: isSelected ? Colors.white : Colors.white60,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        items[i]['label'] as String,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isSelected ? Colors.white : Colors.white60,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        height: 4,
-                        width: isSelected ? double.infinity : 0,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

@@ -100,9 +100,13 @@ class _ProfileInformationScreenState
   Future<void> _loadAndFetchData() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
+    final loginPhone = prefs.getString('login_mobile') ??
+        prefs.getString('phone') ??
+        prefs.getString('mobile') ??
+        '';
     setState(() {
       _name = prefs.getString('name') ?? '';
-      _phone = prefs.getString('phone') ?? prefs.getString('mobile') ?? '';
+      _phone = loginPhone;
       _email = prefs.getString('email') ?? '';
       _block = prefs.getString('block') ?? '';
       _streetName = prefs.getString('street_name') ?? '';
@@ -119,7 +123,9 @@ class _ProfileInformationScreenState
       final p = provider.profile;
       setState(() {
         _name = p.name;
-        _phone = p.mobile;
+        if (_phone.isEmpty && p.mobile.isNotEmpty) {
+          _phone = p.mobile;
+        }
         _email = p.email;
         _block = p.block;
         _streetName = p.street;
@@ -210,7 +216,8 @@ class _ProfileInformationScreenState
     if (_isEditingAddress && !_addressFormKey.currentState!.validate()) return;
 
     final updatedName = _isEditingBasic ? _nameCtrl.text.trim() : _name;
-    final updatedPhone = _isEditingBasic ? _phoneCtrl.text.trim() : _phone;
+    // Mobile number entered during login is fixed and cannot be modified by user
+    final updatedPhone = _phone;
     final updatedEmail = _isEditingBasic ? _emailCtrl.text.trim().toLowerCase() : _email;
 
     final updatedBlock = _isEditingAddress ? _blockCtrl.text.trim() : _block;
@@ -243,7 +250,9 @@ class _ProfileInformationScreenState
       final p = provider.profile;
       setState(() {
         _name = p.name;
-        _phone = p.mobile;
+        if (_phone.isEmpty && p.mobile.isNotEmpty) {
+          _phone = p.mobile;
+        }
         _email = p.email;
         _block = p.block;
         _streetName = p.street;
@@ -564,28 +573,32 @@ class _ProfileInformationScreenState
                                             ),
                                             SizedBox(height: 12.h),
                                             TextFormField(
-                                              style: TextStyle(fontSize: 13.5.sp),
+                                              style: TextStyle(
+                                                fontSize: 13.5.sp,
+                                                color: const Color(0xFF555555),
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                               controller: _phoneCtrl,
+                                              readOnly: true,
+                                              enableInteractiveSelection: false,
                                               decoration:
-                                                  _inputDec('Mobile Number'),
-                                              keyboardType:
-                                                  TextInputType.phone,
-                                              inputFormatters: [
-                                                FilteringTextInputFormatter
-                                                    .digitsOnly,
-                                                LengthLimitingTextInputFormatter(
-                                                    10),
-                                              ],
-                                              validator: (v) {
-                                                if (v == null ||
-                                                    v.trim().isEmpty) {
-                                                  return 'Enter mobile number';
-                                                }
-                                                if (v.trim().length != 10) {
-                                                  return 'Must be 10 digits';
-                                                }
-                                                return null;
-                                              },
+                                                  _inputDec('Mobile Number').copyWith(
+                                                fillColor: const Color(0xFFF7F7F7),
+                                                filled: true,
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.r),
+                                                  borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(8.r),
+                                                  borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
+                                                ),
+                                                suffixIcon: const Icon(
+                                                  Icons.lock_outline,
+                                                  size: 18,
+                                                  color: Color(0xFF888888),
+                                                ),
+                                              ),
                                             ),
                                             SizedBox(height: 12.h),
                                             TextFormField(
